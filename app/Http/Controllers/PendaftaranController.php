@@ -617,8 +617,8 @@ class PendaftaranController extends Controller
             'alamat_ktp' => 'required|string',
             'lon_lat_perusahaan' => 'nullable|string|max:100',
             'sharelock_perusahaan' => 'nullable|string|max:500',
-            'foto_po' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
-            'foto_bangunan' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'foto_po' => 'required|file|mimes:jpeg,png,jpg,webp,pdf|max:5120',
+            'foto_bangunan' => 'required|file|mimes:jpeg,png,jpg,webp,pdf|max:5120',
 
             // Section 3: Alamat & Lokasi Pemasangan
             'provinsi_pasang' => 'required|string',
@@ -1145,8 +1145,8 @@ class PendaftaranController extends Controller
             'alamat_ktp' => 'required|string',
             'lon_lat_perusahaan' => 'nullable|string|max:100',
             'sharelock_perusahaan' => 'nullable|string|max:500',
-            'foto_po' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
-            'foto_bangunan' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'foto_po' => 'nullable|file|mimes:jpeg,png,jpg,webp,pdf|max:5120',
+            'foto_bangunan' => 'nullable|file|mimes:jpeg,png,jpg,webp,pdf|max:5120',
 
             // Section 3: Alamat & Lokasi Pemasangan
             'provinsi_pasang' => 'required|string',

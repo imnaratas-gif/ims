@@ -426,9 +426,25 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1.5">Foto PO</label>
                         @if($editPoUrl)
+                            @php $isPoPdf = preg_match('/\.pdf($|\?)/i', $editPoUrl); @endphp
                             <div class="mb-2">
-                                <img src="{{ $editPoUrl }}" class="max-h-32 rounded-xl border border-slate-200 shadow-xs">
-                                <p class="text-xs text-slate-400 mt-1">Foto saat ini. Upload baru untuk mengganti.</p>
+                                @if($isPoPdf)
+                                    <div class="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <i class="fa-solid fa-file-pdf text-red-500 text-xl flex-shrink-0"></i>
+                                            <div class="min-w-0">
+                                                <p class="text-xs font-semibold text-slate-700 truncate">Berkas PO (PDF)</p>
+                                                <p class="text-[10px] text-slate-400">File tersimpan</p>
+                                            </div>
+                                        </div>
+                                        <a href="{{ $editPoUrl }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 flex-shrink-0 ml-2">
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Buka PDF
+                                        </a>
+                                    </div>
+                                @else
+                                    <img src="{{ $editPoUrl }}" class="max-h-32 rounded-xl border border-slate-200 shadow-xs">
+                                @endif
+                                <p class="text-xs text-slate-400 mt-1">Berkas saat ini. Upload baru untuk mengganti.</p>
                             </div>
                         @endif
                         <div class="border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-2xl p-4 text-center transition-all cursor-pointer bg-slate-50/50 hover:bg-blue-50/30 group" onclick="this.querySelector('input').click()">
@@ -436,18 +452,38 @@
                                 <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
                             </div>
                             <p class="text-xs font-semibold text-slate-600">Klik untuk mengunggah foto PO baru</p>
-                            <p class="text-[11px] text-slate-400 mt-0.5">Format JPG, PNG, WEBP (Maks: 5MB)</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Format JPG, PNG, WEBP, PDF (Maks: 5MB)</p>
                             <p class="text-xs font-bold text-blue-600 mt-2 file-name truncate px-2"></p>
-                            <input type="file" name="foto_po" accept="image/*" class="hidden" onchange="previewFile(this, 'editPreviewPo')">
+                            <input type="file" name="foto_po" accept="image/*,application/pdf,.pdf" class="hidden" onchange="previewFile(this, 'editPreviewPo')">
                         </div>
                         <img id="editPreviewPo" class="mt-2 max-h-32 rounded-xl border border-slate-200 shadow-xs hidden object-cover mx-auto">
+                        <div id="editPreviewPo_pdf" class="mt-2 p-3 bg-red-50 border border-red-200 rounded-xl hidden items-center gap-2 text-red-700 text-xs font-semibold mx-auto">
+                            <i class="fa-solid fa-file-pdf text-lg text-red-500"></i>
+                            <span class="file-name-preview truncate"></span>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1.5">Foto Bangunan</label>
                         @if($editBangunanUrl)
+                            @php $isBangunanPdf = preg_match('/\.pdf($|\?)/i', $editBangunanUrl); @endphp
                             <div class="mb-2">
-                                <img src="{{ $editBangunanUrl }}" class="max-h-32 rounded-xl border border-slate-200 shadow-xs">
-                                <p class="text-xs text-slate-400 mt-1">Foto saat ini. Upload baru untuk mengganti.</p>
+                                @if($isBangunanPdf)
+                                    <div class="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <i class="fa-solid fa-file-pdf text-red-500 text-xl flex-shrink-0"></i>
+                                            <div class="min-w-0">
+                                                <p class="text-xs font-semibold text-slate-700 truncate">Berkas Bangunan (PDF)</p>
+                                                <p class="text-[10px] text-slate-400">File tersimpan</p>
+                                            </div>
+                                        </div>
+                                        <a href="{{ $editBangunanUrl }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 flex-shrink-0 ml-2">
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Buka PDF
+                                        </a>
+                                    </div>
+                                @else
+                                    <img src="{{ $editBangunanUrl }}" class="max-h-32 rounded-xl border border-slate-200 shadow-xs">
+                                @endif
+                                <p class="text-xs text-slate-400 mt-1">Berkas saat ini. Upload baru untuk mengganti.</p>
                             </div>
                         @endif
                         <div class="border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-2xl p-4 text-center transition-all cursor-pointer bg-slate-50/50 hover:bg-blue-50/30 group" onclick="this.querySelector('input').click()">
@@ -455,11 +491,15 @@
                                 <i class="fa-solid fa-house-chimney-window text-lg"></i>
                             </div>
                             <p class="text-xs font-semibold text-slate-600">Klik untuk mengunggah foto Bangunan baru</p>
-                            <p class="text-[11px] text-slate-400 mt-0.5">Format JPG, PNG, WEBP (Maks: 5MB)</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Format JPG, PNG, WEBP, PDF (Maks: 5MB)</p>
                             <p class="text-xs font-bold text-blue-600 mt-2 file-name truncate px-2"></p>
-                            <input type="file" name="foto_bangunan" accept="image/*" class="hidden" onchange="previewFile(this, 'editPreviewBangunan')">
+                            <input type="file" name="foto_bangunan" accept="image/*,application/pdf,.pdf" class="hidden" onchange="previewFile(this, 'editPreviewBangunan')">
                         </div>
                         <img id="editPreviewBangunan" class="mt-2 max-h-32 rounded-xl border border-slate-200 shadow-xs hidden object-cover mx-auto">
+                        <div id="editPreviewBangunan_pdf" class="mt-2 p-3 bg-red-50 border border-red-200 rounded-xl hidden items-center gap-2 text-red-700 text-xs font-semibold mx-auto">
+                            <i class="fa-solid fa-file-pdf text-lg text-red-500"></i>
+                            <span class="file-name-preview truncate"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -668,22 +708,52 @@
     <script>
         // Preview file upload
         function previewFile(input, previewId) {
-            const fileName = input.files[0]?.name;
+            const file = input.files && input.files[0];
+            const fileName = file ? file.name : '';
             const parentDiv = input.parentElement;
             if (parentDiv) {
                 const nameEl = parentDiv.querySelector('.file-name');
                 if (nameEl) nameEl.textContent = fileName || '';
             }
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.getElementById(previewId);
-                    if (img) {
+
+            const img = document.getElementById(previewId);
+            const pdfEl = document.getElementById(previewId + '_pdf');
+
+            if (!file) {
+                if (img) img.classList.add('hidden');
+                if (pdfEl) {
+                    pdfEl.classList.add('hidden');
+                    pdfEl.classList.remove('flex');
+                }
+                return;
+            }
+
+            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+            if (isPdf) {
+                if (img) {
+                    img.src = '';
+                    img.classList.add('hidden');
+                }
+                if (pdfEl) {
+                    const nameSpan = pdfEl.querySelector('.file-name-preview');
+                    if (nameSpan) nameSpan.textContent = fileName;
+                    pdfEl.classList.remove('hidden');
+                    pdfEl.classList.add('flex');
+                }
+            } else {
+                if (pdfEl) {
+                    pdfEl.classList.add('hidden');
+                    pdfEl.classList.remove('flex');
+                }
+                if (img) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
                         img.src = e.target.result;
                         img.classList.remove('hidden');
-                    }
-                };
-                reader.readAsDataURL(input.files[0]);
+                    };
+                    reader.readAsDataURL(file);
+                }
             }
         }
 

@@ -591,16 +591,27 @@
                                         <p class="text-[11px] text-gray-400">Berkas PO resmi pendaftaran</p>
                                     </div>
                                     @if($ktpUrl)
-                                        <div class="group relative rounded-lg overflow-hidden border border-gray-200 aspect-video bg-gray-200 cursor-pointer" onclick="openPhotoModal('{{ $ktpUrl }}', 'Foto PO - {{ addslashes($customer->nama_pelanggan ?: $customer->nama_penduduk ?: '') }}')">
-                                            <img src="{{ $ktpUrl }}" alt="Foto PO" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" onerror="this.onerror=null; this.src=''; this.parentElement.style.display='none'; this.parentElement.nextElementSibling.style.display='flex'">
-                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5">
-                                                <i class="fa-solid fa-magnifying-glass-plus"></i> Perbesar
+                                        @php $isPoPdf = preg_match('/\.pdf($|\?)/i', $ktpUrl); @endphp
+                                        @if($isPoPdf)
+                                            <a href="{{ $ktpUrl }}" target="_blank" class="group relative rounded-lg overflow-hidden border border-red-200 aspect-video bg-red-50 flex flex-col items-center justify-center text-red-600 hover:bg-red-100/70 transition-all p-3 text-center">
+                                                <i class="fa-solid fa-file-pdf text-3xl mb-1 text-red-500 group-hover:scale-110 transition-transform"></i>
+                                                <span class="text-xs font-bold text-slate-800 line-clamp-1">Dokumen PO (PDF)</span>
+                                                <span class="text-[10px] text-blue-600 mt-0.5 font-medium flex items-center gap-1">
+                                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i> Buka / Download PDF
+                                                </span>
+                                            </a>
+                                        @else
+                                            <div class="group relative rounded-lg overflow-hidden border border-gray-200 aspect-video bg-gray-200 cursor-pointer" onclick="openPhotoModal('{{ $ktpUrl }}', 'Foto PO - {{ addslashes($customer->nama_pelanggan ?: $customer->nama_penduduk ?: '') }}')">
+                                                <img src="{{ $ktpUrl }}" alt="Foto PO" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" onerror="this.onerror=null; this.src=''; this.parentElement.style.display='none'; this.parentElement.nextElementSibling.style.display='flex'">
+                                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5">
+                                                    <i class="fa-solid fa-magnifying-glass-plus"></i> Perbesar
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="hidden h-28 rounded-lg border border-dashed border-gray-300 flex-col items-center justify-center text-gray-400 text-xs bg-white text-center p-2">
-                                            <i class="fa-solid fa-file-excel text-2xl mb-1 text-gray-300"></i>
-                                            <span>Foto PO Tidak Ditemukan</span>
-                                        </div>
+                                            <div class="hidden h-28 rounded-lg border border-dashed border-gray-300 flex-col items-center justify-center text-gray-400 text-xs bg-white text-center p-2">
+                                                <i class="fa-solid fa-file-excel text-2xl mb-1 text-gray-300"></i>
+                                                <span>Foto PO Tidak Ditemukan</span>
+                                            </div>
+                                        @endif
                                     @else
                                         <div class="h-28 rounded-lg border border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 text-xs bg-white">
                                             <i class="fa-solid fa-file-lines text-2xl mb-1 text-gray-300"></i>
@@ -616,16 +627,27 @@
                                         <p class="text-[11px] text-gray-400">Fisik bangunan pemasangan</p>
                                     </div>
                                     @if($rumahUrl)
-                                        <div class="group relative rounded-lg overflow-hidden border border-gray-200 aspect-video bg-gray-200 cursor-pointer" onclick="openPhotoModal('{{ $rumahUrl }}', 'Foto Rumah - {{ addslashes($customer->nama_pelanggan ?: $customer->nama_penduduk ?: '') }}')">
-                                            <img src="{{ $rumahUrl }}" alt="Foto Rumah" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" onerror="this.onerror=null; this.src=''; this.parentElement.style.display='none'; this.parentElement.nextElementSibling.style.display='flex'">
-                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5">
-                                                <i class="fa-solid fa-magnifying-glass-plus"></i> Perbesar
+                                        @php $isRumahPdf = preg_match('/\.pdf($|\?)/i', $rumahUrl); @endphp
+                                        @if($isRumahPdf)
+                                            <a href="{{ $rumahUrl }}" target="_blank" class="group relative rounded-lg overflow-hidden border border-red-200 aspect-video bg-red-50 flex flex-col items-center justify-center text-red-600 hover:bg-red-100/70 transition-all p-3 text-center">
+                                                <i class="fa-solid fa-file-pdf text-3xl mb-1 text-red-500 group-hover:scale-110 transition-transform"></i>
+                                                <span class="text-xs font-bold text-slate-800 line-clamp-1">Dokumen Lokasi (PDF)</span>
+                                                <span class="text-[10px] text-blue-600 mt-0.5 font-medium flex items-center gap-1">
+                                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i> Buka / Download PDF
+                                                </span>
+                                            </a>
+                                        @else
+                                            <div class="group relative rounded-lg overflow-hidden border border-gray-200 aspect-video bg-gray-200 cursor-pointer" onclick="openPhotoModal('{{ $rumahUrl }}', 'Foto Rumah - {{ addslashes($customer->nama_pelanggan ?: $customer->nama_penduduk ?: '') }}')">
+                                                <img src="{{ $rumahUrl }}" alt="Foto Rumah" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" onerror="this.onerror=null; this.src=''; this.parentElement.style.display='none'; this.parentElement.nextElementSibling.style.display='flex'">
+                                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5">
+                                                    <i class="fa-solid fa-magnifying-glass-plus"></i> Perbesar
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="hidden h-28 rounded-lg border border-dashed border-gray-300 flex-col items-center justify-center text-gray-400 text-xs bg-white text-center p-2">
-                                            <i class="fa-solid fa-file-excel text-2xl mb-1 text-gray-300"></i>
-                                            <span>Foto Rumah Tidak Ditemukan</span>
-                                        </div>
+                                            <div class="hidden h-28 rounded-lg border border-dashed border-gray-300 flex-col items-center justify-center text-gray-400 text-xs bg-white text-center p-2">
+                                                <i class="fa-solid fa-file-excel text-2xl mb-1 text-gray-300"></i>
+                                                <span>Foto Rumah Tidak Ditemukan</span>
+                                            </div>
+                                        @endif
                                     @else
                                         <div class="h-28 rounded-lg border border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 text-xs bg-white">
                                             <i class="fa-solid fa-house text-2xl mb-1 text-gray-300"></i>
@@ -1167,6 +1189,11 @@
         }
 
         function openPhotoModal(url, title) {
+            if (!url) return;
+            if (url.toLowerCase().includes('.pdf')) {
+                window.open(url, '_blank');
+                return;
+            }
             const modal = document.getElementById('photoPreviewModal');
             const img = document.getElementById('photoModalImg');
             const modalTitle = document.getElementById('photoModalTitle');

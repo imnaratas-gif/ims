@@ -919,11 +919,15 @@
                                         <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
                                     </div>
                                     <p class="text-xs font-semibold text-slate-600">Klik untuk mengunggah foto PO</p>
-                                    <p class="text-[11px] text-slate-400 mt-0.5">Format JPG, PNG, WEBP (Maks: 5MB)</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Format JPG, PNG, WEBP, PDF (Maks: 5MB)</p>
                                     <p class="text-xs font-bold text-blue-600 mt-2 file-name truncate px-2"></p>
-                                    <input type="file" name="foto_po" accept="image/*" class="hidden" onchange="previewFile(this, 'previewPo')">
+                                    <input type="file" name="foto_po" accept="image/*,application/pdf,.pdf" class="hidden" onchange="previewFile(this, 'previewPo')">
                                 </div>
                                 <img id="previewPo" class="mt-3 max-h-36 rounded-xl border border-slate-200 shadow-xs hidden object-cover mx-auto">
+                                <div id="previewPo_pdf" class="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl hidden items-center gap-2 text-red-700 text-xs font-semibold mx-auto">
+                                    <i class="fa-solid fa-file-pdf text-lg text-red-500"></i>
+                                    <span class="file-name-preview truncate"></span>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Foto Bangunan <span class="text-rose-500 font-bold">*</span></label>
@@ -932,11 +936,15 @@
                                         <i class="fa-solid fa-house-chimney-window text-lg"></i>
                                     </div>
                                     <p class="text-xs font-semibold text-slate-600">Klik untuk mengunggah foto Bangunan</p>
-                                    <p class="text-[11px] text-slate-400 mt-0.5">Format JPG, PNG, WEBP (Maks: 5MB)</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Format JPG, PNG, WEBP, PDF (Maks: 5MB)</p>
                                     <p class="text-xs font-bold text-blue-600 mt-2 file-name truncate px-2"></p>
-                                    <input type="file" name="foto_bangunan" accept="image/*" class="hidden" onchange="previewFile(this, 'previewBangunan')">
+                                    <input type="file" name="foto_bangunan" accept="image/*,application/pdf,.pdf" class="hidden" onchange="previewFile(this, 'previewBangunan')">
                                 </div>
                                 <img id="previewBangunan" class="mt-3 max-h-36 rounded-xl border border-slate-200 shadow-xs hidden object-cover mx-auto">
+                                <div id="previewBangunan_pdf" class="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl hidden items-center gap-2 text-red-700 text-xs font-semibold mx-auto">
+                                    <i class="fa-solid fa-file-pdf text-lg text-red-500"></i>
+                                    <span class="file-name-preview truncate"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -3603,16 +3611,52 @@
 
         // Preview file upload
         function previewFile(input, previewId) {
-            const fileName = input.files[0]?.name;
-            input.parentElement.querySelector('.file-name').textContent = fileName || '';
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.getElementById(previewId);
-                    img.src = e.target.result;
-                    img.classList.remove('hidden');
-                };
-                reader.readAsDataURL(input.files[0]);
+            const file = input.files && input.files[0];
+            const fileName = file ? file.name : '';
+            const parent = input.parentElement;
+            if (parent) {
+                const nameEl = parent.querySelector('.file-name');
+                if (nameEl) nameEl.textContent = fileName || '';
+            }
+
+            const img = document.getElementById(previewId);
+            const pdfEl = document.getElementById(previewId + '_pdf');
+
+            if (!file) {
+                if (img) img.classList.add('hidden');
+                if (pdfEl) {
+                    pdfEl.classList.add('hidden');
+                    pdfEl.classList.remove('flex');
+                }
+                return;
+            }
+
+            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+            if (isPdf) {
+                if (img) {
+                    img.src = '';
+                    img.classList.add('hidden');
+                }
+                if (pdfEl) {
+                    const nameSpan = pdfEl.querySelector('.file-name-preview');
+                    if (nameSpan) nameSpan.textContent = fileName;
+                    pdfEl.classList.remove('hidden');
+                    pdfEl.classList.add('flex');
+                }
+            } else {
+                if (pdfEl) {
+                    pdfEl.classList.add('hidden');
+                    pdfEl.classList.remove('flex');
+                }
+                if (img) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        img.src = e.target.result;
+                        img.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
             }
         }
 
