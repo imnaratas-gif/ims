@@ -148,23 +148,363 @@
         </form>
     </div>
 
-    <!-- DataTable Card -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
-            <div class="flex items-center gap-2 text-sm text-gray-600">
-                <span>Show</span>
-                <select onchange="changeEntries(this.value)" class="bg-white border border-gray-200 rounded px-2 py-1 text-sm outline-none focus:border-blue-400">
-                    <option value="10" {{ request('entries', 10) == 10 ? 'selected' : '' }}>10</option>
-                    <option value="25" {{ request('entries') == 25 ? 'selected' : '' }}>25</option>
-                    <option value="50" {{ request('entries') == 50 ? 'selected' : '' }}>50</option>
-                    <option value="100" {{ request('entries') == 100 ? 'selected' : '' }}>100</option>
-                </select>
-                <span>entries</span>
+    <!-- DataTable / Card Container -->
+    @php
+        $formatShortAlamat = function($r) {
+            $raw = trim($r->alamat_pasang ?: ($r->alamat_p ?: ''));
+            if (empty($raw)) return '-';
+            $raw = preg_replace('/\s+/', ' ', $raw);
+            $parts = array_map('trim', explode(',', $raw));
+            $first = $parts[0] ?? $raw;
+            if (mb_strlen($first) > 55) {
+                $first = mb_substr($first, 0, 52) . '...';
+            }
+            $wil = trim(($r->nama_kelurahan_pasang ?? '') ?: ($r->nama_kota_pasang ?? ''));
+            if (!empty($wil) && !str_contains(strtoupper($first), strtoupper($wil))) {
+                $first .= ' (' . $wil . ')';
+            }
+            return mb_strlen($first) > 70 ? mb_substr($first, 0, 67) . '...' : $first;
+        };
+    @endphp
+
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 sm:p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 gap-3">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                    <span>Show</span>
+                    <select onchange="changeEntries(this.value)" class="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-400">
+                        <option value="10" {{ request('entries', 10) == 10 ? 'selected' : '' }}>10</option>
+                        <option value="25" {{ request('entries') == 25 ? 'selected' : '' }}>25</option>
+                        <option value="50" {{ request('entries') == 50 ? 'selected' : '' }}>50</option>
+                        <option value="100" {{ request('entries') == 100 ? 'selected' : '' }}>100</option>
+                    </select>
+                    <span>entries</span>
+                </div>
+
+                <!-- View Switcher -->
+                <div class="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200/80">
+                    <button type="button" onclick="setRegView('card')" id="btnViewCard"
+                            class="px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 bg-white text-blue-600 shadow-2xs">
+                        <i class="fa-solid fa-grip"></i>
+                        <span>Card</span>
+                    </button>
+                    <button type="button" onclick="setRegView('table')" id="btnViewTable"
+                            class="px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800">
+                        <i class="fa-solid fa-table-list"></i>
+                        <span>Tabel</span>
+                    </button>
+                </div>
             </div>
             @if (isset($rows) && $rows->total()) @include('partials.pagination', ['rows' => $rows]) @endif
         </div>
 
-        <div class="overflow-x-auto">
+        <!-- ════════ CARD VIEW ════════ -->
+        <div id="regViewCard" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-2">
+            @forelse ($rows ?? [] as $r)
+                @php
+                    $rawTipe = strtolower(trim((string)($r->tipe_pelanggan ?? '')));
+                    if (in_array($rawTipe, ['lama', 'kuning', 'yellow'], true)) {
+                        $borderBarColor = 'bg-amber-400';
+                        $cardBorder = 'border-amber-200/80';
+                        $badgeTipe = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Lama</span>';
+                    } elseif (in_array($rawTipe, ['baru', 'biru', 'blue'], true)) {
+                        $borderBarColor = 'bg-blue-500';
+                        $cardBorder = 'border-blue-200/80';
+                        $badgeTipe = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">Baru</span>';
+                    } else {
+                        $borderBarColor = 'bg-slate-300';
+                        $cardBorder = 'border-slate-200/80';
+                        $badgeTipe = '';
+                    }
+
+                    $isReportDone = !empty($r->instalasi_date_finish) || (!empty($r->instalasi_team) && !empty($r->instalasi_note_finish)) || $r->status_reg == '15' || str_contains(strtoupper($r->desc_registrasi ?? ''), 'SELESAI INSTALASI');
+                    $isAktivasiScheduled = !empty($r->aktivasi_date_start);
+                    $isAktivasiDone = !empty($r->aktivasi_date_finish) || $r->status_reg == '16' || str_contains(strtoupper($r->desc_registrasi ?? ''), 'SELESAI AKTIVASI');
+                    
+                    $stepAktivasiScheduled = $isAktivasiScheduled && !$isAktivasiDone;
+                    $step5_instalasiDone = $isReportDone && !$isAktivasiScheduled && !$isAktivasiDone;
+                    $step1_dataInput = empty($r->survey_date_start) && empty($r->survey_date_finish) && empty($r->instalasi_date_start) && !$step5_instalasiDone && !$isAktivasiScheduled && !$isAktivasiDone;
+                    $step2_surveyScheduled = !empty($r->survey_date_start) && empty($r->survey_date_finish) && empty($r->instalasi_date_start) && !$step5_instalasiDone && !$isAktivasiScheduled && !$isAktivasiDone;
+                    $step3_surveyDone = !empty($r->survey_date_finish) && empty($r->instalasi_date_start) && !$step5_instalasiDone && !$isAktivasiScheduled && !$isAktivasiDone;
+                    $step4_instalasiScheduled = !empty($r->instalasi_date_start) && empty($r->instalasi_date_finish) && !$step5_instalasiDone && !$isAktivasiScheduled && !$isAktivasiDone;
+
+                    $uName = $r->user_create;
+                    if (!empty($uName)) {
+                        $userDb = \Illuminate\Support\Facades\DB::table('view_pengguna')
+                            ->where('username', $uName)
+                            ->orWhere('username', 'LIKE', $uName . '%')
+                            ->orWhere('kode_pengguna', $uName)
+                            ->orWhere('kode_karyawan', $uName)
+                            ->first();
+                        if ($userDb && !empty($userDb->nama_karyawan)) {
+                            $uName = $userDb->nama_karyawan;
+                        } elseif (str_contains($uName, '@')) {
+                            $clean = explode('@', $uName)[0];
+                            $uName = str_replace(['.', '_', '-'], ' ', $clean);
+                        }
+                    }
+
+                    $fullAlamat = $r->alamat_p ?: ($r->alamat_pasang ?: '-');
+                    $shortAlamat = $formatShortAlamat($r);
+                @endphp
+
+                <div class="relative bg-white rounded-2xl border {{ $cardBorder }} hover:border-blue-400 p-4 transition-all duration-200 shadow-xs hover:shadow-md flex flex-col justify-between overflow-hidden group">
+                    <div class="absolute left-0 top-0 bottom-0 w-1.5 {{ $borderBarColor }}"></div>
+
+                    <div class="space-y-3 pl-1.5">
+                        <!-- Top Header -->
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <a href="{{ route('pelanggan.detail', ['nomor_internet' => $r->nomor_internet, 'from' => 'registrasi']) }}"
+                                   class="font-bold text-blue-600 hover:text-blue-700 text-sm hover:underline flex items-center gap-1.5">
+                                    <i class="fa-solid fa-hashtag text-[10px] text-blue-400"></i>
+                                    <span>{{ $r->nomor_internet }}</span>
+                                </a>
+                                <a href="{{ route('pelanggan.detail', ['nomor_internet' => $r->nomor_internet, 'from' => 'registrasi']) }}"
+                                   class="block text-sm font-bold text-slate-800 hover:text-blue-600 mt-0.5 truncate" title="{{ $r->nama_pelanggan }}">
+                                    {{ $r->nama_pelanggan ?: '-' }}
+                                </a>
+                            </div>
+                            {!! $badgeTipe !!}
+                        </div>
+
+                        <!-- Perusahaan & Paket Info Box -->
+                        <div class="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 space-y-1.5 text-xs">
+                            <div class="flex items-center gap-2 text-slate-700 min-w-0">
+                                <i class="fa-solid fa-building text-slate-400 text-xs flex-shrink-0"></i>
+                                <span class="font-semibold truncate" title="{{ $r->nama_perusahaan ?: $r->nama_pelanggan }}">
+                                    {{ $r->nama_perusahaan ?: ($r->nama_pelanggan ?: '-') }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2 text-blue-600 font-medium min-w-0">
+                                <i class="fa-solid fa-wifi text-blue-400 text-xs flex-shrink-0"></i>
+                                <span class="truncate">
+                                    {{ str_ireplace('UP TO NEW', 'LOCALLOOP', $r->nama_kategori_bandwith ?? '') }} {{ $r->nominal_bandwith }} Mbps
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Lokasi Pemasangan (Alamat Diringkas) -->
+                        <div class="text-xs space-y-1">
+                            <div class="flex items-center gap-1.5 text-slate-700 font-semibold">
+                                <i class="fa-solid fa-house-chimney text-slate-400 text-[11px] flex-shrink-0"></i>
+                                <span>{{ $r->jenis_bangunan ?: '-' }}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 leading-relaxed pl-4 line-clamp-2" title="{{ $fullAlamat }}">
+                                {{ $shortAlamat }}
+                            </p>
+                        </div>
+
+                        <!-- Status Workflow -->
+                        <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                            <div>
+                                @if($step1_dataInput)
+                                    <span class="inline-block bg-indigo-50 border border-indigo-100/80 text-indigo-600 text-xs font-medium px-2.5 py-0.5 rounded-full">Data Input</span>
+                                @elseif($step2_surveyScheduled)
+                                    <div class="space-y-0.5">
+                                        <span class="inline-block bg-indigo-50 border border-indigo-100/80 text-indigo-600 text-[11px] font-semibold px-2 py-0.5 rounded-md">
+                                            Jadwal Survey ({{ \Carbon\Carbon::parse($r->survey_date_start)->format('d M') }})
+                                        </span>
+                                        <span class="inline-block bg-rose-50 border border-rose-100 text-rose-500 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">POSTING SURVEY</span>
+                                    </div>
+                                @elseif($step3_surveyDone)
+                                    <span class="inline-block bg-indigo-50 border border-indigo-100/80 text-indigo-600 text-[11px] font-semibold px-2 py-0.5 rounded-md">Selesai Survey</span>
+                                @elseif($step4_instalasiScheduled)
+                                    <div class="space-y-0.5">
+                                        <span class="inline-block bg-indigo-50 border border-indigo-100/80 text-indigo-600 text-[11px] font-semibold px-2 py-0.5 rounded-md">
+                                            Jadwal Instalasi ({{ \Carbon\Carbon::parse($r->instalasi_date_start)->format('d M') }})
+                                        </span>
+                                        <span class="inline-block bg-rose-50 border border-rose-100 text-rose-500 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">POSTING INSTALASI</span>
+                                    </div>
+                                @elseif($stepAktivasiScheduled)
+                                    <div class="space-y-0.5">
+                                        <span class="inline-block bg-indigo-50 border border-indigo-100/80 text-indigo-600 text-[11px] font-semibold px-2 py-0.5 rounded-md">
+                                            Jadwal Aktivasi ({{ \Carbon\Carbon::parse($r->aktivasi_date_start)->format('d M') }})
+                                        </span>
+                                        <span class="inline-block bg-rose-50 border border-rose-100 text-rose-500 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">POSTING AKTIVASI</span>
+                                    </div>
+                                @elseif($isAktivasiDone)
+                                    <span class="inline-block bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold px-2.5 py-0.5 rounded-md">Selesai Aktivasi</span>
+                                @elseif($step5_instalasiDone)
+                                    <span class="inline-block bg-indigo-50 border border-indigo-100/80 text-indigo-600 text-xs font-semibold px-2.5 py-0.5 rounded-md">Selesai Instalasi</span>
+                                @else
+                                    @if($r->desc_registrasi)
+                                        <span class="inline-block bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold px-2 py-0.5 rounded-md">{{ $r->desc_registrasi }}</span>
+                                    @endif
+                                @endif
+                            </div>
+                            <span class="text-[10px] text-slate-400">
+                                SO: {{ \Carbon\Carbon::parse($r->date_create)->timezone('Asia/Jakarta')->format('d M Y') }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons Footer -->
+                    <div class="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 pl-1.5">
+                        <span class="text-[10px] text-slate-400 truncate max-w-[110px]" title="Sales: {{ $r->nama_sales }}">
+                            Sales: <span class="font-semibold text-slate-700">{{ strtoupper($r->nama_sales ?: '-') }}</span>
+                        </span>
+
+                        <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                            @php
+                                $u = session('user', []);
+                                $userLevel = strtoupper($u['level'] ?? '');
+                                $kodeLevel = $u['kode_level'] ?? '';
+                                $levelNum  = $u['level_num'] ?? null;
+                                $isAdminUser = ($isAdmin ?? false) || ($userLevel === 'ADMIN' || $kodeLevel === 'lv00001' || ($u['username'] ?? '') === 'admin');
+                                $isFinanceUser = ($isFinance ?? false) || ($userLevel === 'FINANCE' || $kodeLevel === 'lv33501' || $levelNum == 6 || str_contains($userLevel, 'FINANCE') || str_contains($userLevel, 'KEUANGAN') || str_contains($userLevel, 'KASIR'));
+                            @endphp
+
+                            @if($isAdminUser || $isFinanceUser)
+                                <a href="{{ route('pendaftaran.edit', $r->nomor_internet) }}"
+                                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                    <span>Edit</span>
+                                </a>
+                                <button type="button" onclick="konfirmasiHapus('{{ $r->nomor_internet }}')"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors">
+                                    <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                    <span>Hapus</span>
+                                </button>
+                            @elseif($isNoc ?? false)
+                                <button type="button" onclick="openBatalPasangModal('{{ $r->nomor_internet }}', '{{ addslashes($r->nama_pelanggan ?: $r->nama_penduduk ?: 'Pelanggan') }}')"
+                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+                                    <i class="fa-solid fa-xmark text-[10px]"></i>
+                                    <span>Batal</span>
+                                </button>
+                                @if(empty($r->aktivasi_date_start))
+                                    @if($isReportDone)
+                                        @php $rItems = $installedItems->get($r->nomor_internet, collect()); @endphp
+                                        <button type="button" onclick="openAktivasiModal(
+                                                '{{ $r->nomor_internet }}',
+                                                '{{ addslashes($r->nama_pelanggan) }}',
+                                                '{{ $r->aktivasi_date_start ?? '' }}',
+                                                '{{ $r->aktivasi_time ?? '' }}',
+                                                '{{ addslashes($r->aktivasi_team ?? '') }}',
+                                                '{{ $r->kode_pop ?: $r->nama_pop ?: '' }}',
+                                                '{{ addslashes($r->media_akses ?? '') }}',
+                                                '{{ addslashes($r->index_olt ?? '') }}',
+                                                '{{ addslashes($r->aktivasi_note ?? '') }}',
+                                                {{ json_encode($rItems) }},
+                                                '{{ $getPhotoUrl($r->foto_peta ?? null) }}',
+                                                '{{ addslashes($r->ont_us ?? '') }}',
+                                                '{{ addslashes($r->olt ?? '') }}'
+                                            )" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                                            <i class="fa-solid fa-calendar-check text-[10px]"></i>
+                                            <span>Aktivasi</span>
+                                        </button>
+                                    @endif
+                                @elseif(!empty($r->aktivasi_date_start) && empty($r->aktivasi_date_finish))
+                                    @php $rItems = $installedItems->get($r->nomor_internet, collect()); @endphp
+                                    <button type="button" onclick="openReportAktivasiModal(
+                                            '{{ $r->nomor_internet }}',
+                                            '{{ addslashes($r->nama_pelanggan) }}',
+                                            '{{ $r->aktivasi_date_finish ?? '' }}',
+                                            '{{ addslashes($r->aktivasi_note_finish ?? '') }}',
+                                            '{{ addslashes($r->aktivasi_team ?? '') }}',
+                                            '{{ $r->kode_pop ?? '' }}',
+                                            '{{ addslashes($r->media_akses ?? '') }}',
+                                            '{{ addslashes($r->index_olt ?? '') }}',
+                                            {{ json_encode($rItems) }}
+                                        )" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                                        <i class="fa-solid fa-file-signature text-[10px]"></i>
+                                        <span>Report Aktivasi</span>
+                                    </button>
+                                @endif
+                                <a href="{{ route('pendaftaran.edit', $r->nomor_internet) }}"
+                                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                    <span>Edit</span>
+                                </a>
+                            @else
+                                <button type="button" onclick="openBatalPasangModal('{{ $r->nomor_internet }}', '{{ addslashes($r->nama_pelanggan ?: $r->nama_penduduk ?: 'Pelanggan') }}')"
+                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+                                    <i class="fa-solid fa-xmark text-[10px]"></i>
+                                    <span>Batal</span>
+                                </button>
+                                @if($step1_dataInput)
+                                    <button type="button" onclick="openSurveyModal(
+                                            '{{ $r->nomor_internet }}',
+                                            '{{ addslashes($r->nama_pelanggan) }}',
+                                            '{{ $r->survey_date_start ?? '' }}',
+                                            '{{ $r->survey_time ?? '' }}',
+                                            '{{ addslashes($r->survey_note ?? '') }}',
+                                            '{{ addslashes($r->survey_team ?? '') }}',
+                                            '{{ $getPhotoUrl($r->foto_peta ?? null) }}'
+                                        )" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                                        <i class="fa-solid fa-calendar-check text-[10px]"></i>
+                                        <span>Survey</span>
+                                    </button>
+                                @elseif($step2_surveyScheduled)
+                                    <button type="button" onclick="openReportSurveyModal(
+                                            '{{ $r->nomor_internet }}',
+                                            '{{ addslashes($r->nama_pelanggan) }}',
+                                            '{{ $r->survey_date_finish ?? '' }}',
+                                            '{{ addslashes($r->survey_note_finish ?? '') }}',
+                                            '{{ addslashes($r->survey_team ?? '') }}',
+                                            '{{ $getPhotoUrl($r->foto_peta ?? null) }}'
+                                        )" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                                        <i class="fa-solid fa-file-signature text-[10px]"></i>
+                                        <span>Report Survey</span>
+                                    </button>
+                                @elseif($step3_surveyDone)
+                                    @php $rItems = $installedItems->get($r->nomor_internet, collect()); @endphp
+                                    <button type="button" onclick="openFormInstalasiModal(
+                                            '{{ $r->nomor_internet }}',
+                                            '{{ addslashes($r->nama_pelanggan) }}',
+                                            '{{ addslashes($r->survey_note_finish ?: $r->note_request ?: '') }}',
+                                            '{{ $r->instalasi_date_start ?? '' }}',
+                                            '{{ $r->instalasi_time ?? '' }}',
+                                            '{{ addslashes($r->instalasi_note ?? '') }}',
+                                            '{{ addslashes($r->instalasi_team ?? '') }}',
+                                            {{ json_encode($rItems) }},
+                                            '{{ $getPhotoUrl($r->foto_peta ?? null) }}'
+                                        )" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                                        <i class="fa-solid fa-calendar-check text-[10px]"></i>
+                                        <span>Instalasi</span>
+                                    </button>
+                                @elseif($step4_instalasiScheduled)
+                                    @php $rItems = $installedItems->get($r->nomor_internet, collect()); @endphp
+                                    <button type="button" onclick="openReportInstalasiModal(
+                                            '{{ $r->nomor_internet }}',
+                                            '{{ addslashes($r->nama_pelanggan ?: $r->nama_penduduk ?: 'Pelanggan') }}',
+                                            '{{ $r->instalasi_date_finish ?? '' }}',
+                                            '{{ addslashes($r->instalasi_note_finish ?? '') }}',
+                                            '{{ addslashes($r->instalasi_team ?? '') }}',
+                                            {{ json_encode($rItems) }},
+                                            '{{ $getPhotoUrl($r->foto_peta ?? null) }}'
+                                        )" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                                        <i class="fa-solid fa-file-signature text-[10px]"></i>
+                                        <span>Report Instalasi</span>
+                                    </button>
+                                @endif
+                                <a href="{{ route('pendaftaran.edit', $r->nomor_internet) }}"
+                                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                    <span>Edit</span>
+                                </a>
+                                <button type="button" onclick="konfirmasiHapus('{{ $r->nomor_internet }}')"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors">
+                                    <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                    <span>Hapus</span>
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-span-full py-16 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200/60 flex items-center justify-center mx-auto mb-4 shadow-inner">
+                        <i class="fa-solid fa-box-open text-2xl text-slate-300"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-gray-500">Belum ada pendaftaran</p>
+                    <p class="text-xs text-gray-400 mt-1">Klik tombol "Registrasi Baru" untuk menambahkan data.</p>
+                </div>
+            @endforelse
+        </div>
+
+        <!-- ════════ TABLE VIEW ════════ -->
+        <div id="regViewTable" class="overflow-x-auto hidden">
             <table class="w-full">
                 <thead>
                     <tr class="bg-slate-50 border-b border-gray-200">
@@ -201,9 +541,9 @@
                                 <a href="{{ route('pelanggan.detail', ['nomor_internet' => $r->nomor_internet, 'from' => 'registrasi']) }}" class="block text-xs text-blue-600 hover:underline mt-1">{{ str_ireplace('UP TO NEW', 'LOCALLOOP', $r->nama_kategori_bandwith ?? '') }} {{ $r->nominal_bandwith }} Mbps</a>
                             </td>
                             <td class="py-4 px-4 align-top"><p class="text-sm font-semibold text-gray-700">{{ $r->nama_perusahaan ?: ($r->nama_pelanggan ?: '-') }}</p></td>
-                            <td class="py-4 px-4 align-top">
+                            <td class="py-4 px-4 align-top max-w-xs">
                                 <p class="text-sm font-bold text-gray-800">{{ $r->jenis_bangunan ?: '-' }}</p>
-                                <p class="text-xs text-gray-500 mt-1 leading-relaxed">{{ $r->alamat_p ?: ($r->alamat_pasang ?: '-') }}</p>
+                                <p class="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-2" title="{{ $r->alamat_p ?: ($r->alamat_pasang ?: '-') }}">{{ $formatShortAlamat($r) }}</p>
                             </td>
                               <td class="py-4 px-4 align-top">
                                   <div class="space-y-1.5">
@@ -4388,6 +4728,47 @@
                         }
                     });
                 }
+            }
+        });
+
+        // Toggle Card vs Table View
+        function setRegView(view) {
+            const cardEl = document.getElementById('regViewCard');
+            const tableEl = document.getElementById('regViewTable');
+            const btnCard = document.getElementById('btnViewCard');
+            const btnTable = document.getElementById('btnViewTable');
+
+            if (!cardEl || !tableEl) return;
+
+            if (view === 'table') {
+                cardEl.classList.add('hidden');
+                tableEl.classList.remove('hidden');
+                if (btnTable && btnCard) {
+                    btnTable.classList.add('bg-white', 'text-blue-600', 'shadow-2xs');
+                    btnTable.classList.remove('text-slate-500');
+                    btnCard.classList.remove('bg-white', 'text-blue-600', 'shadow-2xs');
+                    btnCard.classList.add('text-slate-500');
+                }
+                localStorage.setItem('reg_view', 'table');
+            } else {
+                tableEl.classList.add('hidden');
+                cardEl.classList.remove('hidden');
+                if (btnCard && btnTable) {
+                    btnCard.classList.add('bg-white', 'text-blue-600', 'shadow-2xs');
+                    btnCard.classList.remove('text-slate-500');
+                    btnTable.classList.remove('bg-white', 'text-blue-600', 'shadow-2xs');
+                    btnTable.classList.add('text-slate-500');
+                }
+                localStorage.setItem('reg_view', 'card');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.innerWidth < 768) {
+                setRegView('card');
+            } else {
+                const pref = localStorage.getItem('reg_view') || 'card';
+                setRegView(pref);
             }
         });
 
