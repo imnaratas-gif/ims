@@ -47,19 +47,19 @@
         {{-- Profile dropdown --}}
         <div class="relative" id="profileContainer">
             <button id="profileToggle" type="button"
-                    class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-all group focus:outline-none">
+                    class="flex items-center gap-2 sm:gap-2.5 px-1.5 sm:px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-all group focus:outline-none">
                 <div class="w-8 h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-400 overflow-hidden shadow-xs flex-shrink-0">
                     <svg class="w-full h-full text-slate-400 pt-1" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                 </div>
-                <div class="hidden md:block text-left">
-                    <p class="text-sm font-semibold text-gray-700 leading-tight">{{ $nama }}</p>
+                <div class="text-left max-w-[130px] sm:max-w-[200px] md:max-w-none">
+                    <p class="text-xs sm:text-sm font-semibold text-gray-700 leading-tight truncate">{{ $nama }}</p>
                     @if($level)
-                        <p class="text-[10px] text-gray-400 leading-tight">{{ $level }}</p>
+                        <p class="text-[9px] sm:text-[10px] text-gray-400 leading-tight truncate uppercase font-medium">{{ $level }}</p>
                     @endif
                 </div>
-                <i id="profileChevron" class="fa-solid fa-chevron-down text-[10px] text-gray-400 transition-transform duration-200 hidden md:block"></i>
+                <i id="profileChevron" class="fa-solid fa-chevron-down text-[9px] sm:text-[10px] text-gray-400 transition-transform duration-200"></i>
             </button>
 
             {{-- Dropdown menu --}}
