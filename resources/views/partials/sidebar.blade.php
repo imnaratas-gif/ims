@@ -69,8 +69,8 @@
         <div class="mt-4 h-px" style="background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);"></div>
     </div>
 
-    {{-- Collapsed Mini Logo --}}
-    <div class="flex-shrink-0 pt-5 pb-3 justify-center items-center sidebar-show-collapsed">
+    {{-- Collapsed Mini Logo (Hanya tampil saat collapsed di desktop) --}}
+    <div class="hidden flex-shrink-0 pt-5 pb-3 justify-center items-center sidebar-show-collapsed">
         <div class="w-11 h-11 rounded-xl flex items-center justify-center relative overflow-hidden transition-all duration-200 hover:scale-105"
              style="background: linear-gradient(135deg, #1e3a5f 0%, #0f2647 50%, #162d4a 100%); box-shadow: 0 4px 16px rgba(59,130,246,0.25), inset 0 1px 0 rgba(255,255,255,0.15);">
             <img src="{{ asset('img/logo-icon-white.png') }}"

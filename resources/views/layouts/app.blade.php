@@ -92,8 +92,10 @@
             box-shadow: 0 4px 18px rgba(37, 99, 235, 0.4) !important;
         }
 
-        /* Floating Tooltips and Flyouts (hidden by default in expanded mode) */
-        .sidebar-tooltip, .sidebar-flyout {
+        /* Collapsed elements (mini logo, tooltips, flyouts) hidden by default everywhere */
+        #sidebar .sidebar-show-collapsed,
+        .sidebar-tooltip, 
+        .sidebar-flyout {
             display: none !important;
         }
 
