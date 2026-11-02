@@ -43,20 +43,28 @@
     ──────────────────────────────── --}}
     {{-- Expanded Logo --}}
     <div class="flex-shrink-0 px-4 pt-5 pb-4 sidebar-hide-collapsed">
-        <div class="relative rounded-2xl overflow-hidden"
-             style="background: linear-gradient(135deg, #1e3a5f 0%, #0f2647 50%, #162d4a 100%); box-shadow: 0 4px 24px rgba(59,130,246,0.18), inset 0 1px 0 rgba(255,255,255,0.07);">
-            <div class="absolute inset-0 opacity-20"
-                 style="background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%); pointer-events:none;"></div>
-            <div class="absolute -top-4 -right-4 w-20 h-20 rounded-full opacity-10"
-                 style="background: radial-gradient(circle, #60a5fa, transparent 70%);"></div>
-            <div class="absolute -bottom-3 -left-3 w-14 h-14 rounded-full opacity-10"
-                 style="background: radial-gradient(circle, #3b82f6, transparent 70%);"></div>
+        <div class="flex items-center justify-between gap-3">
+            <div class="relative rounded-2xl overflow-hidden flex-1"
+                 style="background: linear-gradient(135deg, #1e3a5f 0%, #0f2647 50%, #162d4a 100%); box-shadow: 0 4px 24px rgba(59,130,246,0.18), inset 0 1px 0 rgba(255,255,255,0.07);">
+                <div class="absolute inset-0 opacity-20"
+                     style="background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%); pointer-events:none;"></div>
+                <div class="absolute -top-4 -right-4 w-20 h-20 rounded-full opacity-10"
+                     style="background: radial-gradient(circle, #60a5fa, transparent 70%);"></div>
+                <div class="absolute -bottom-3 -left-3 w-14 h-14 rounded-full opacity-10"
+                     style="background: radial-gradient(circle, #3b82f6, transparent 70%);"></div>
 
-            <div class="relative flex items-center justify-center px-4 py-2.5">
-                <img src="{{ asset('img/logo-white.png') }}"
-                     alt="Logo Connecti Jelajah"
-                     class="h-11 w-auto max-w-full object-contain filter drop-shadow-md transition-transform duration-200 hover:scale-105">
+                <div class="relative flex items-center justify-center px-4 py-2.5">
+                    <img src="{{ asset('img/logo-white.png') }}"
+                         alt="Logo Connecti Jelajah"
+                         class="h-11 w-auto max-w-full object-contain filter drop-shadow-md transition-transform duration-200 hover:scale-105">
+                </div>
             </div>
+
+            {{-- Tombol Tutup Khusus Mobile --}}
+            <button type="button" onclick="toggleSidebar(false)" aria-label="Tutup Menu"
+                    class="md:hidden w-10 h-10 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center border border-slate-700/60 transition-colors flex-shrink-0">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
         </div>
         <div class="mt-4 h-px" style="background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);"></div>
     </div>
