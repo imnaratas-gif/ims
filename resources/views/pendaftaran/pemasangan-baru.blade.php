@@ -169,37 +169,21 @@
 
     <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 sm:p-6 mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 gap-3">
-            <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
-                    <span>Show</span>
-                    <select onchange="changeEntries(this.value)" class="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-400">
-                        <option value="10" {{ request('entries', 10) == 10 ? 'selected' : '' }}>10</option>
-                        <option value="25" {{ request('entries') == 25 ? 'selected' : '' }}>25</option>
-                        <option value="50" {{ request('entries') == 50 ? 'selected' : '' }}>50</option>
-                        <option value="100" {{ request('entries') == 100 ? 'selected' : '' }}>100</option>
-                    </select>
-                    <span>entries</span>
-                </div>
-
-                <!-- View Switcher -->
-                <div class="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200/80">
-                    <button type="button" onclick="setRegView('card')" id="btnViewCard"
-                            class="px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 bg-white text-blue-600 shadow-2xs">
-                        <i class="fa-solid fa-grip"></i>
-                        <span>Card</span>
-                    </button>
-                    <button type="button" onclick="setRegView('table')" id="btnViewTable"
-                            class="px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800">
-                        <i class="fa-solid fa-table-list"></i>
-                        <span>Tabel</span>
-                    </button>
-                </div>
+            <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <span>Show</span>
+                <select onchange="changeEntries(this.value)" class="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs sm:text-sm outline-none focus:border-blue-400">
+                    <option value="10" {{ request('entries', 10) == 10 ? 'selected' : '' }}>10</option>
+                    <option value="25" {{ request('entries') == 25 ? 'selected' : '' }}>25</option>
+                    <option value="50" {{ request('entries') == 50 ? 'selected' : '' }}>50</option>
+                    <option value="100" {{ request('entries') == 100 ? 'selected' : '' }}>100</option>
+                </select>
+                <span>entries</span>
             </div>
             @if (isset($rows) && $rows->total()) @include('partials.pagination', ['rows' => $rows]) @endif
         </div>
 
-        <!-- ════════ CARD VIEW ════════ -->
-        <div id="regViewCard" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-2">
+        <!-- ════════ CARD VIEW (Hanya Tampil di Mobile) ════════ -->
+        <div id="regViewCard" class="grid grid-cols-1 gap-4 mb-2 md:hidden">
             @forelse ($rows ?? [] as $r)
                 @php
                     $rawTipe = strtolower(trim((string)($r->tipe_pelanggan ?? '')));
@@ -503,8 +487,8 @@
             @endforelse
         </div>
 
-        <!-- ════════ TABLE VIEW ════════ -->
-        <div id="regViewTable" class="overflow-x-auto hidden">
+        <!-- ════════ TABLE VIEW (Hanya Tampil di Desktop) ════════ -->
+        <div id="regViewTable" class="hidden md:block overflow-x-auto">
             <table class="w-full">
                 <thead>
                     <tr class="bg-slate-50 border-b border-gray-200">
@@ -4728,47 +4712,6 @@
                         }
                     });
                 }
-            }
-        });
-
-        // Toggle Card vs Table View
-        function setRegView(view) {
-            const cardEl = document.getElementById('regViewCard');
-            const tableEl = document.getElementById('regViewTable');
-            const btnCard = document.getElementById('btnViewCard');
-            const btnTable = document.getElementById('btnViewTable');
-
-            if (!cardEl || !tableEl) return;
-
-            if (view === 'table') {
-                cardEl.classList.add('hidden');
-                tableEl.classList.remove('hidden');
-                if (btnTable && btnCard) {
-                    btnTable.classList.add('bg-white', 'text-blue-600', 'shadow-2xs');
-                    btnTable.classList.remove('text-slate-500');
-                    btnCard.classList.remove('bg-white', 'text-blue-600', 'shadow-2xs');
-                    btnCard.classList.add('text-slate-500');
-                }
-                localStorage.setItem('reg_view', 'table');
-            } else {
-                tableEl.classList.add('hidden');
-                cardEl.classList.remove('hidden');
-                if (btnCard && btnTable) {
-                    btnCard.classList.add('bg-white', 'text-blue-600', 'shadow-2xs');
-                    btnCard.classList.remove('text-slate-500');
-                    btnTable.classList.remove('bg-white', 'text-blue-600', 'shadow-2xs');
-                    btnTable.classList.add('text-slate-500');
-                }
-                localStorage.setItem('reg_view', 'card');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            if (window.innerWidth < 768) {
-                setRegView('card');
-            } else {
-                const pref = localStorage.getItem('reg_view') || 'card';
-                setRegView(pref);
             }
         });
 

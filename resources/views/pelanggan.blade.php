@@ -321,34 +321,18 @@
         @endphp
 
         <div id="tabel-pelanggan" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden scroll-mt-6">
-            <!-- Controls: Entries, View Switcher & Search -->
+            <!-- Controls: Entries & Search -->
             <div class="px-4 sm:px-6 py-4 border-b border-gray-100 bg-white flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-                    <form method="GET" action="{{ route('pelanggan') }}#tabel-pelanggan" class="flex items-center gap-2 text-xs text-gray-600">
-                        <span>Show</span>
-                        <select name="entries" onchange="this.form.submit()" class="bg-gray-50 border border-gray-200 text-gray-800 text-xs rounded-lg px-2.5 py-1 focus:border-blue-500 outline-none cursor-pointer">
-                            <option value="10" {{ request('entries', 10) == 10 ? 'selected' : '' }}>10</option>
-                            <option value="25" {{ request('entries') == 25 ? 'selected' : '' }}>25</option>
-                            <option value="50" {{ request('entries') == 50 ? 'selected' : '' }}>50</option>
-                            <option value="100" {{ request('entries') == 100 ? 'selected' : '' }}>100</option>
-                        </select>
-                        <span>entries</span>
-                    </form>
-
-                    <!-- View Switcher (Card / Tabel) -->
-                    <div class="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200/80">
-                        <button type="button" onclick="setPelangganView('card')" id="btnPelangganCard"
-                                class="px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 bg-white text-blue-600 shadow-2xs">
-                            <i class="fa-solid fa-grip"></i>
-                            <span>Card</span>
-                        </button>
-                        <button type="button" onclick="setPelangganView('table')" id="btnPelangganTable"
-                                class="px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800">
-                            <i class="fa-solid fa-table-list"></i>
-                            <span>Tabel</span>
-                        </button>
-                    </div>
-                </div>
+                <form method="GET" action="{{ route('pelanggan') }}#tabel-pelanggan" class="flex items-center gap-2 text-xs text-gray-600">
+                    <span>Show</span>
+                    <select name="entries" onchange="this.form.submit()" class="bg-gray-50 border border-gray-200 text-gray-800 text-xs rounded-lg px-2.5 py-1 focus:border-blue-500 outline-none cursor-pointer">
+                        <option value="10" {{ request('entries', 10) == 10 ? 'selected' : '' }}>10</option>
+                        <option value="25" {{ request('entries') == 25 ? 'selected' : '' }}>25</option>
+                        <option value="50" {{ request('entries') == 50 ? 'selected' : '' }}>50</option>
+                        <option value="100" {{ request('entries') == 100 ? 'selected' : '' }}>100</option>
+                    </select>
+                    <span>entries</span>
+                </form>
 
                 <form method="GET" action="{{ route('pelanggan') }}#tabel-pelanggan" class="w-full md:w-auto flex items-center gap-2">
                     <span class="text-xs text-gray-500">Search:</span>
@@ -356,8 +340,8 @@
                 </form>
             </div>
 
-            <!-- ════════ CARD VIEW ════════ -->
-            <div id="pelangganViewCard" class="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <!-- ════════ CARD VIEW (Hanya Tampil di Mobile) ════════ -->
+            <div id="pelangganViewCard" class="p-4 grid grid-cols-1 gap-4 md:hidden">
                 @forelse($customers as $c)
                     @php
                         $rawTipe = strtolower(trim((string)($c->tipe_pelanggan ?? '')));
@@ -634,8 +618,8 @@
                 @endforelse
             </div>
 
-            <!-- Table Body -->
-            <div id="pelangganViewTable" class="overflow-x-auto hidden">
+            <!-- ════════ TABLE VIEW (Hanya Tampil di Desktop) ════════ -->
+            <div id="pelangganViewTable" class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="bg-slate-50/80 text-gray-700 font-bold uppercase tracking-wider border-b border-gray-100 text-[11px]">
@@ -1818,82 +1802,47 @@
                 }
             }
 
-        function setPelangganView(view) {
-            const cardView = document.getElementById('pelangganViewCard');
-            const tableView = document.getElementById('pelangganViewTable');
-            const btnCard = document.getElementById('btnPelangganCard');
-            const btnTable = document.getElementById('btnPelangganTable');
+            // Live filter instant saat mengetik di input Alamat dan Search
+            const inputAlamat = document.getElementById('inputAlamatPelanggan');
+            const inputSearch = document.getElementById('inputSearchPelanggan');
+            const tableRows = document.querySelectorAll('#tabel-pelanggan tbody tr');
+            const cardItems = document.querySelectorAll('.pelanggan-card-item');
 
-            if (!cardView || !tableView) return;
+            function filterTableRowsLocally() {
+                const alamatVal = (inputAlamat ? inputAlamat.value : '').toLowerCase().trim();
+                const searchVal = (inputSearch ? inputSearch.value : '').toLowerCase().trim();
 
-            if (view === 'card') {
-                cardView.classList.remove('hidden');
-                tableView.classList.add('hidden');
-                if (btnCard && btnTable) {
-                    btnCard.className = 'px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 bg-white text-blue-600 shadow-2xs cursor-pointer';
-                    btnTable.className = 'px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800 cursor-pointer';
-                }
-                localStorage.setItem('cjp_pelanggan_view', 'card');
-            } else {
-                cardView.classList.add('hidden');
-                tableView.classList.remove('hidden');
-                if (btnCard && btnTable) {
-                    btnTable.className = 'px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 bg-white text-blue-600 shadow-2xs cursor-pointer';
-                    btnCard.className = 'px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800 cursor-pointer';
-                }
-                localStorage.setItem('cjp_pelanggan_view', 'table');
+                tableRows.forEach(row => {
+                    const text = row.innerText.toLowerCase();
+                    const matchAlamat = !alamatVal || text.includes(alamatVal);
+                    const matchSearch = !searchVal || text.includes(searchVal);
+
+                    if (matchAlamat && matchSearch) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                cardItems.forEach(card => {
+                    const text = card.innerText.toLowerCase();
+                    const matchAlamat = !alamatVal || text.includes(alamatVal);
+                    const matchSearch = !searchVal || text.includes(searchVal);
+
+                    if (matchAlamat && matchSearch) {
+                        card.style.display = '';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
             }
-        }
 
-        // Live filter instant saat mengetik di input Alamat dan Search
-        const inputAlamat = document.getElementById('inputAlamatPelanggan');
-        const inputSearch = document.getElementById('inputSearchPelanggan');
-        const tableRows = document.querySelectorAll('#tabel-pelanggan tbody tr');
-        const cardItems = document.querySelectorAll('.pelanggan-card-item');
-
-        function filterTableRowsLocally() {
-            const alamatVal = (inputAlamat ? inputAlamat.value : '').toLowerCase().trim();
-            const searchVal = (inputSearch ? inputSearch.value : '').toLowerCase().trim();
-
-            tableRows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                const matchAlamat = !alamatVal || text.includes(alamatVal);
-                const matchSearch = !searchVal || text.includes(searchVal);
-
-                if (matchAlamat && matchSearch) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            cardItems.forEach(card => {
-                const text = card.innerText.toLowerCase();
-                const matchAlamat = !alamatVal || text.includes(alamatVal);
-                const matchSearch = !searchVal || text.includes(searchVal);
-
-                if (matchAlamat && matchSearch) {
-                    card.style.display = '';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-
-        if (inputAlamat) {
-            inputAlamat.addEventListener('input', filterTableRowsLocally);
-        }
-        if (inputSearch) {
-            inputSearch.addEventListener('input', filterTableRowsLocally);
-        }
-
-        // Initial view setup
-        const savedPelangganView = localStorage.getItem('cjp_pelanggan_view');
-        if (savedPelangganView) {
-            setPelangganView(savedPelangganView);
-        } else {
-            setPelangganView('card');
-        }
+            if (inputAlamat) {
+                inputAlamat.addEventListener('input', filterTableRowsLocally);
+            }
+            if (inputSearch) {
+                inputSearch.addEventListener('input', filterTableRowsLocally);
+            }
 
             var els = document.querySelectorAll('.reveal');
             if (!('IntersectionObserver' in window)) { els.forEach(function (e) { e.classList.add('is-visible'); }); return; }
