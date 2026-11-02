@@ -302,28 +302,340 @@
         </form>
 
         <!-- Tabel Data Pelanggan (Desain Sesuai Mockup) -->
+        @php
+            $formatShortAlamat = function($c) {
+                $raw = trim($c->alamat_pasang ?: ($c->alamat_p ?: ''));
+                if (empty($raw)) return '-';
+                $raw = preg_replace('/\s+/', ' ', $raw);
+                $parts = array_map('trim', explode(',', $raw));
+                $first = $parts[0] ?? $raw;
+                if (mb_strlen($first) > 55) {
+                    $first = mb_substr($first, 0, 52) . '...';
+                }
+                $wil = trim(($c->nama_kelurahan_pasang ?? '') ?: (($c->nama_kota_pasang ?? '') ?: ($c->nama_kecamatan_pasang ?? '')));
+                if (!empty($wil) && !str_contains(strtoupper($first), strtoupper($wil))) {
+                    $first .= ' (' . $wil . ')';
+                }
+                return mb_strlen($first) > 70 ? mb_substr($first, 0, 67) . '...' : $first;
+            };
+        @endphp
+
         <div id="tabel-pelanggan" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden scroll-mt-6">
-            <!-- Controls: Entries & Search -->
-            <div class="px-6 py-4 border-b border-gray-100 bg-white flex flex-col md:flex-row items-center justify-between gap-4">
-                <form method="GET" action="{{ route('pelanggan') }}#tabel-pelanggan" class="flex items-center gap-2 text-xs text-gray-600">
-                    <span>Show</span>
-                    <select name="entries" onchange="this.form.submit()" class="bg-gray-50 border border-gray-200 text-gray-800 text-xs rounded-lg px-2.5 py-1 focus:border-blue-500 outline-none cursor-pointer">
-                        <option value="10" {{ request('entries', 10) == 10 ? 'selected' : '' }}>10</option>
-                        <option value="25" {{ request('entries') == 25 ? 'selected' : '' }}>25</option>
-                        <option value="50" {{ request('entries') == 50 ? 'selected' : '' }}>50</option>
-                        <option value="100" {{ request('entries') == 100 ? 'selected' : '' }}>100</option>
-                    </select>
-                    <span>entries</span>
-                </form>
+            <!-- Controls: Entries, View Switcher & Search -->
+            <div class="px-4 sm:px-6 py-4 border-b border-gray-100 bg-white flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                    <form method="GET" action="{{ route('pelanggan') }}#tabel-pelanggan" class="flex items-center gap-2 text-xs text-gray-600">
+                        <span>Show</span>
+                        <select name="entries" onchange="this.form.submit()" class="bg-gray-50 border border-gray-200 text-gray-800 text-xs rounded-lg px-2.5 py-1 focus:border-blue-500 outline-none cursor-pointer">
+                            <option value="10" {{ request('entries', 10) == 10 ? 'selected' : '' }}>10</option>
+                            <option value="25" {{ request('entries') == 25 ? 'selected' : '' }}>25</option>
+                            <option value="50" {{ request('entries') == 50 ? 'selected' : '' }}>50</option>
+                            <option value="100" {{ request('entries') == 100 ? 'selected' : '' }}>100</option>
+                        </select>
+                        <span>entries</span>
+                    </form>
+
+                    <!-- View Switcher (Card / Tabel) -->
+                    <div class="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200/80">
+                        <button type="button" onclick="setPelangganView('card')" id="btnPelangganCard"
+                                class="px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 bg-white text-blue-600 shadow-2xs">
+                            <i class="fa-solid fa-grip"></i>
+                            <span>Card</span>
+                        </button>
+                        <button type="button" onclick="setPelangganView('table')" id="btnPelangganTable"
+                                class="px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800">
+                            <i class="fa-solid fa-table-list"></i>
+                            <span>Tabel</span>
+                        </button>
+                    </div>
+                </div>
 
                 <form method="GET" action="{{ route('pelanggan') }}#tabel-pelanggan" class="w-full md:w-auto flex items-center gap-2">
                     <span class="text-xs text-gray-500">Search:</span>
-                    <input type="text" name="search" value="{{ request('search') }}" onchange="this.form.submit()" class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1 text-xs text-gray-700 focus:border-blue-500 outline-none">
+                    <input type="text" name="search" id="inputSearchPelanggan" value="{{ request('search') }}" onchange="this.form.submit()" class="w-full md:w-auto bg-gray-50 border border-gray-200 rounded-lg px-3 py-1 text-xs text-gray-700 focus:border-blue-500 outline-none" placeholder="Cari data...">
                 </form>
             </div>
 
+            <!-- ════════ CARD VIEW ════════ -->
+            <div id="pelangganViewCard" class="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                @forelse($customers as $c)
+                    @php
+                        $rawTipe = strtolower(trim((string)($c->tipe_pelanggan ?? '')));
+                        if (in_array($rawTipe, ['lama', 'kuning', 'yellow'], true)) {
+                            $borderBarColor = 'bg-amber-400';
+                            $cardBorder = 'border-amber-200/80';
+                            $badgeTipe = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Lama</span>';
+                        } elseif (in_array($rawTipe, ['baru', 'biru', 'blue'], true)) {
+                            $borderBarColor = 'bg-blue-500';
+                            $cardBorder = 'border-blue-200/80';
+                            $badgeTipe = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">Baru</span>';
+                        } else {
+                            $borderBarColor = 'bg-slate-300';
+                            $cardBorder = 'border-slate-200/80';
+                            $badgeTipe = '';
+                        }
+
+                        $fullAlamat = $c->alamat_pasang ?: ($c->alamat_p ?: '-');
+                        $shortAlamat = $formatShortAlamat($c);
+
+                        $creatorName = $c->user_create_name ?? null;
+                        if (empty($creatorName)) {
+                            $uName = $c->user_create ?? '';
+                            if (!empty($uName)) {
+                                $userDb = \Illuminate\Support\Facades\DB::table('view_pengguna')
+                                    ->where('username', $uName)
+                                    ->orWhere('username', 'LIKE', $uName . '%')
+                                    ->orWhere('kode_pengguna', $uName)
+                                    ->orWhere('kode_karyawan', $uName)
+                                    ->first();
+                                if ($userDb && !empty($userDb->nama_karyawan)) {
+                                    $creatorName = $userDb->nama_karyawan;
+                                } elseif (str_contains($uName, '@')) {
+                                    $clean = explode('@', $uName)[0];
+                                    $creatorName = str_replace(['.', '_', '-'], ' ', $clean);
+                                } else {
+                                    $creatorName = $uName;
+                                }
+                            }
+                        }
+
+                        $isReportDone = !empty($c->instalasi_date_finish) || (!empty($c->instalasi_team) && !empty($c->instalasi_note_finish)) || ($c->status_reg ?? '') == '15' || str_contains(strtoupper($c->desc_registrasi ?? ''), 'SELESAI INSTALASI');
+                        $isAktivasiScheduled = !empty($c->aktivasi_date_start);
+                        $isAktivasiDone = !empty($c->aktivasi_date_finish) || ($c->status_reg ?? '') == '16' || str_contains(strtoupper($c->desc_registrasi ?? ''), 'SELESAI AKTIVASI');
+                        $step5_instalasiDone = $isReportDone && !$isAktivasiScheduled && !$isAktivasiDone;
+                        $step1_dataInput = empty($c->survey_date_start) && empty($c->survey_date_finish) && empty($c->instalasi_date_start) && !$step5_instalasiDone && !$isAktivasiScheduled && !$isAktivasiDone;
+                        $step2_surveyScheduled = !empty($c->survey_date_start) && empty($c->survey_date_finish) && empty($c->instalasi_date_start) && !$step5_instalasiDone && !$isAktivasiScheduled && !$isAktivasiDone;
+                        $step3_surveyDone = !empty($c->survey_date_finish) && empty($c->instalasi_date_start) && !$step5_instalasiDone && !$isAktivasiScheduled && !$isAktivasiDone;
+                        $step4_instalasiScheduled = !empty($c->instalasi_date_start) && empty($c->instalasi_date_finish) && !$step5_instalasiDone && !$isAktivasiScheduled && !$isAktivasiDone;
+                    @endphp
+
+                    <div class="pelanggan-card-item relative bg-white rounded-2xl border {{ $cardBorder }} hover:border-blue-400 p-4 sm:p-5 transition-all duration-200 shadow-xs hover:shadow-md flex flex-col justify-between overflow-hidden group">
+                        <div class="absolute left-0 top-0 bottom-0 w-1.5 {{ $borderBarColor }}"></div>
+
+                        <div class="pl-2 space-y-3">
+                            <!-- Card Header: Pelanggan & Status -->
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap mb-1">
+                                        <a href="{{ route('pelanggan.detail', $c->nomor_internet) }}" class="font-bold text-blue-600 hover:underline text-sm tracking-tight">
+                                            {{ $c->nomor_internet }}
+                                        </a>
+                                        {!! $badgeTipe !!}
+                                    </div>
+                                    <a href="{{ route('pelanggan.detail', $c->nomor_internet) }}" class="font-bold text-gray-900 hover:text-blue-600 hover:underline uppercase text-xs sm:text-sm block truncate" title="{{ $c->nama_display }}">
+                                        {{ $c->nama_display }}
+                                    </a>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    @if(($c->is_suspend ?? '0') == '1' || ($c->section ?? '') === 'suspend')
+                                        <span class="inline-flex items-center gap-1 bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
+                                            <i class="fa-solid fa-pause-circle text-[9px]"></i> Suspend
+                                        </span>
+                                    @elseif(($c->is_termin ?? '0') == '1' || ($c->section ?? '') === 'terminasi')
+                                        <span class="inline-flex items-center bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
+                                            Terminasi
+                                        </span>
+                                    @elseif(($c->section ?? '') === 'gagal')
+                                        <span class="inline-flex items-center gap-1 bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
+                                            <i class="fa-solid fa-ban text-[9px]"></i> Gagal Pasang
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center bg-blue-100 text-blue-800 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
+                                            Aktif
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- Paket & Harga -->
+                            <div class="flex items-center justify-between text-xs py-2 px-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                                <div>
+                                    <span class="font-semibold text-blue-600 block">{{ $c->paket }}</span>
+                                    <span class="text-[11px] text-gray-500 font-medium">{{ $c->media_akses ?: 'MediaNet FTTH' }}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="font-bold text-gray-900 text-xs block">
+                                        Rp {{ number_format((float) ($c->harga_bandwith ?? $c->harga_paket ?? 0), 0, ',', '.') }}
+                                    </span>
+                                    <span class="text-[10px] text-gray-400">
+                                        Updated {{ \Carbon\Carbon::parse($c->date_update ?: $c->date_create)->format('d M Y') }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Lokasi & Alamat Singkat -->
+                            <div class="space-y-1 text-xs">
+                                <div class="flex items-center gap-1 text-[11px] font-bold text-gray-700 uppercase">
+                                    <i class="fa-solid fa-building text-slate-400 text-[10px]"></i>
+                                    <span>{{ $c->jenis_bangunan ?: 'RUMAH-PRIBADI' }}</span>
+                                </div>
+                                <div class="flex items-start gap-1.5 text-xs text-gray-600 leading-relaxed">
+                                    <i class="fa-solid fa-location-dot text-slate-400 mt-0.5 text-[11px] shrink-0"></i>
+                                    <span class="line-clamp-2 uppercase" title="{{ $fullAlamat }}">
+                                        {{ $shortAlamat }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Note Request if Gagal -->
+                            @if(($c->section ?? '') === 'gagal' && !empty($c->note_request))
+                                <div class="text-[11px] text-rose-600 font-medium leading-tight bg-rose-50/80 p-2 rounded-lg border border-rose-100">
+                                    <i class="fa-solid fa-circle-info mr-1 text-[10px]"></i>
+                                    {{ $c->note_request }}
+                                </div>
+                            @endif
+
+                            <!-- Meta SO, Creator, Sales -->
+                            <div class="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px] text-gray-500">
+                                <div>
+                                    <span class="text-gray-400 block text-[10px]">Tanggal SO:</span>
+                                    <span class="font-semibold text-gray-700">{{ \Carbon\Carbon::parse($c->date_create)->format('d M Y H:i') }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-400 block text-[10px]">Sales:</span>
+                                    <span class="font-semibold text-gray-700 uppercase truncate block">{{ $c->nama_sales ?: '-' }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Actions Footer -->
+                        <div class="pl-2 mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-1.5 flex-wrap">
+                            @if(($c->section ?? '') === 'gagal')
+                                @if($isAdmin || $isTeknik)
+                                    @if($step1_dataInput || in_array((string)($c->status_reg ?? ''), ['17', '11.1'], true))
+                                        <button type="button" onclick="openSurveyModal(
+                                                '{{ $c->nomor_internet }}',
+                                                '{{ addslashes($c->nama_display) }}',
+                                                '{{ $c->survey_date_start ?? '' }}',
+                                                '{{ $c->survey_time ?? '' }}',
+                                                '{{ addslashes($c->survey_note ?? '') }}',
+                                                '{{ addslashes($c->survey_team ?? '') }}',
+                                                '{{ !empty($c->foto_peta) ? route('media.file', ['path' => $c->foto_peta]) : '' }}'
+                                            )" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer">
+                                            <i class="fa-solid fa-calendar-check text-[10px]"></i>
+                                            <span>Jadwal Survey</span>
+                                        </button>
+                                    @elseif($step2_surveyScheduled)
+                                        <button type="button" onclick="openReportSurveyModal(
+                                                '{{ $c->nomor_internet }}',
+                                                '{{ addslashes($c->nama_display) }}',
+                                                '{{ $c->survey_date_finish ?? '' }}',
+                                                '{{ addslashes($c->survey_note_finish ?? '') }}',
+                                                '{{ addslashes($c->survey_team ?? '') }}',
+                                                '{{ !empty($c->foto_peta) ? route('media.file', ['path' => $c->foto_peta]) : '' }}'
+                                            )" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer">
+                                            <i class="fa-solid fa-file-signature text-[10px]"></i>
+                                            <span>Report Survey</span>
+                                        </button>
+                                    @elseif($step3_surveyDone)
+                                        @php
+                                            $cItems = isset($installedItems) ? $installedItems->get($c->nomor_internet, collect()) : collect();
+                                        @endphp
+                                        <button type="button" onclick="openFormInstalasiModal(
+                                                '{{ $c->nomor_internet }}',
+                                                '{{ addslashes($c->nama_display) }}',
+                                                '{{ addslashes($c->survey_note_finish ?: $c->note_request ?: '') }}',
+                                                '{{ $c->instalasi_date_start ?? '' }}',
+                                                '{{ $c->instalasi_time ?? '' }}',
+                                                '{{ addslashes($c->instalasi_note ?? '') }}',
+                                                '{{ addslashes($c->instalasi_team ?? '') }}',
+                                                {{ json_encode($cItems) }},
+                                                '{{ !empty($c->foto_peta) ? route('media.file', ['path' => $c->foto_peta]) : '' }}'
+                                            )" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer">
+                                            <i class="fa-solid fa-calendar-check text-[10px]"></i>
+                                            <span>Jadwal Instalasi</span>
+                                        </button>
+                                    @elseif($step4_instalasiScheduled)
+                                        @php
+                                            $cItems = isset($installedItems) ? $installedItems->get($c->nomor_internet, collect()) : collect();
+                                        @endphp
+                                        <button type="button" onclick="openReportInstalasiModal(
+                                                '{{ $c->nomor_internet }}',
+                                                '{{ addslashes($c->nama_display) }}',
+                                                '{{ $c->instalasi_date_finish ?? '' }}',
+                                                '{{ addslashes($c->instalasi_note_finish ?? '') }}',
+                                                '{{ addslashes($c->instalasi_team ?? '') }}',
+                                                {{ json_encode($cItems) }},
+                                                '{{ !empty($c->foto_peta) ? route('media.file', ['path' => $c->foto_peta]) : '' }}'
+                                            )" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer">
+                                            <i class="fa-solid fa-file-signature text-[10px]"></i>
+                                            <span>Report Instalasi</span>
+                                        </button>
+                                    @endif
+
+                                    <a href="{{ route('pendaftaran.edit', $c->nomor_internet) }}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors">
+                                        <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                        <span>Edit</span>
+                                    </a>
+                                    <button type="button" onclick="openModalHapus('{{ $c->nomor_internet }}', '{{ addslashes($c->nama_display) }}')" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
+                                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                        <span>Hapus</span>
+                                    </button>
+                                @else
+                                    <a href="{{ route('pendaftaran.edit', $c->nomor_internet) }}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors">
+                                        <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                        <span>Edit</span>
+                                    </a>
+                                    <button type="button" onclick="openModalHapus('{{ $c->nomor_internet }}', '{{ addslashes($c->nama_display) }}')" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
+                                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                        <span>Hapus</span>
+                                    </button>
+                                @endif
+                            @elseif($isAdmin || $isNoc || $isTeknik)
+                                <a href="{{ route('pendaftaran.edit', $c->nomor_internet) }}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                    <span>Edit</span>
+                                </a>
+                                <button type="button" onclick="openModalHapus('{{ $c->nomor_internet }}', '{{ addslashes($c->nama_display) }}')" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
+                                    <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                    <span>Hapus</span>
+                                </button>
+                            @elseif($isFinance)
+                                <a href="{{ route('pendaftaran.edit', $c->nomor_internet) }}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                    <span>Edit</span>
+                                </a>
+                                <button type="button" onclick="openModalTerminasi('{{ $c->nomor_internet }}', '{{ addslashes($c->nama_display) }}')" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
+                                    <i class="fa-solid fa-file-contract text-[10px]"></i>
+                                    <span>Terminasi</span>
+                                </button>
+                                <button type="button" onclick="openModalUpDowngrade('{{ $c->nomor_internet }}', '{{ addslashes($c->nama_display) }}')" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer">
+                                    <i class="fa-solid fa-arrows-up-down text-[10px]"></i>
+                                    <span>Up/Down</span>
+                                </button>
+                                <button type="button" onclick="openModalSuspend('{{ $c->nomor_internet }}', '{{ addslashes($c->nama_display) }}')" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer">
+                                    <i class="fa-solid fa-circle-pause text-[10px]"></i>
+                                    <span>Suspend</span>
+                                </button>
+                                <button type="button" onclick="openModalAdjust('{{ $c->nomor_internet }}', '{{ addslashes($c->nama_display) }}')" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-cyan-600 hover:bg-cyan-50 transition-colors cursor-pointer">
+                                    <i class="fa-solid fa-sliders text-[10px]"></i>
+                                    <span>Adjust</span>
+                                </button>
+                            @else
+                                <a href="{{ route('pendaftaran.edit', $c->nomor_internet) }}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                    <span>Edit</span>
+                                </a>
+                                <button type="button" onclick="openModalHapus('{{ $c->nomor_internet }}', '{{ addslashes($c->nama_display) }}')" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
+                                    <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                    <span>Hapus</span>
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="col-span-full py-12 text-center bg-white rounded-2xl border border-dashed border-gray-200">
+                        <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mx-auto mb-3">
+                            <i class="fa-solid fa-users-slash text-xl"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-gray-700">Tidak ada data pelanggan ditemukan</p>
+                        <p class="text-xs text-gray-400 mt-1">Gunakan tab pilihan di atas atau ubah filter pencarian untuk menemukan data pelanggan.</p>
+                    </div>
+                @endforelse
+            </div>
+
             <!-- Table Body -->
-            <div class="overflow-x-auto">
+            <div id="pelangganViewTable" class="overflow-x-auto hidden">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="bg-slate-50/80 text-gray-700 font-bold uppercase tracking-wider border-b border-gray-100 text-[11px]">
@@ -364,19 +676,15 @@
                                     <a href="{{ route('pelanggan.detail', $c->nomor_internet) }}" class="text-[11px] font-semibold text-blue-600 hover:underline block">
                                         {{ $c->paket }}
                                     </a>
-                                    {{-- Group Layanan (Hide Dulu) --}}
-                                    {{-- <div class="text-[11px] text-gray-400 mt-1">
-                                        Group Layanan : <span class="font-semibold text-gray-700 uppercase">{{ $c->group_layanan ?: 'MEDIANET' }}</span>
-                                    </div> --}}
                                 </td>
 
                                 <!-- Col 2: Lokasi Pemasangan -->
-                                <td class="py-4 px-6 align-top space-y-1">
+                                <td class="py-4 px-6 align-top space-y-1 max-w-xs">
                                     <div class="font-bold text-gray-700 uppercase text-[11px]">
                                         {{ $c->jenis_bangunan ?: 'RUMAH-PRIBADI' }}
                                     </div>
-                                    <div class="text-xs text-gray-600 max-w-sm leading-relaxed uppercase">
-                                        {{ $c->alamat_pasang ?: $c->alamat_p ?: '-' }}
+                                    <div class="text-xs text-gray-600 leading-relaxed uppercase line-clamp-2" title="{{ $c->alamat_pasang ?: $c->alamat_p ?: '-' }}">
+                                        {{ $formatShortAlamat($c) }}
                                     </div>
                                     <div class="font-bold text-gray-800 text-[11px] mt-1">
                                         {{ $c->media_akses ?: 'MediaNet FTTH' }}
@@ -1510,34 +1818,82 @@
                 }
             }
 
-            // Live filter instant saat mengetik di input Alamat dan Search
-            const inputAlamat = document.getElementById('inputAlamatPelanggan');
-            const inputSearch = document.getElementById('inputSearchPelanggan');
-            const tableRows = document.querySelectorAll('#tabel-pelanggan tbody tr');
+        function setPelangganView(view) {
+            const cardView = document.getElementById('pelangganViewCard');
+            const tableView = document.getElementById('pelangganViewTable');
+            const btnCard = document.getElementById('btnPelangganCard');
+            const btnTable = document.getElementById('btnPelangganTable');
 
-            function filterTableRowsLocally() {
-                const alamatVal = (inputAlamat ? inputAlamat.value : '').toLowerCase().trim();
-                const searchVal = (inputSearch ? inputSearch.value : '').toLowerCase().trim();
+            if (!cardView || !tableView) return;
 
-                tableRows.forEach(row => {
-                    const text = row.innerText.toLowerCase();
-                    const matchAlamat = !alamatVal || text.includes(alamatVal);
-                    const matchSearch = !searchVal || text.includes(searchVal);
-
-                    if (matchAlamat && matchSearch) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
+            if (view === 'card') {
+                cardView.classList.remove('hidden');
+                tableView.classList.add('hidden');
+                if (btnCard && btnTable) {
+                    btnCard.className = 'px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 bg-white text-blue-600 shadow-2xs cursor-pointer';
+                    btnTable.className = 'px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800 cursor-pointer';
+                }
+                localStorage.setItem('cjp_pelanggan_view', 'card');
+            } else {
+                cardView.classList.add('hidden');
+                tableView.classList.remove('hidden');
+                if (btnCard && btnTable) {
+                    btnTable.className = 'px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 bg-white text-blue-600 shadow-2xs cursor-pointer';
+                    btnCard.className = 'px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 text-slate-500 hover:text-slate-800 cursor-pointer';
+                }
+                localStorage.setItem('cjp_pelanggan_view', 'table');
             }
+        }
 
-            if (inputAlamat) {
-                inputAlamat.addEventListener('input', filterTableRowsLocally);
-            }
-            if (inputSearch) {
-                inputSearch.addEventListener('input', filterTableRowsLocally);
-            }
+        // Live filter instant saat mengetik di input Alamat dan Search
+        const inputAlamat = document.getElementById('inputAlamatPelanggan');
+        const inputSearch = document.getElementById('inputSearchPelanggan');
+        const tableRows = document.querySelectorAll('#tabel-pelanggan tbody tr');
+        const cardItems = document.querySelectorAll('.pelanggan-card-item');
+
+        function filterTableRowsLocally() {
+            const alamatVal = (inputAlamat ? inputAlamat.value : '').toLowerCase().trim();
+            const searchVal = (inputSearch ? inputSearch.value : '').toLowerCase().trim();
+
+            tableRows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                const matchAlamat = !alamatVal || text.includes(alamatVal);
+                const matchSearch = !searchVal || text.includes(searchVal);
+
+                if (matchAlamat && matchSearch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            cardItems.forEach(card => {
+                const text = card.innerText.toLowerCase();
+                const matchAlamat = !alamatVal || text.includes(alamatVal);
+                const matchSearch = !searchVal || text.includes(searchVal);
+
+                if (matchAlamat && matchSearch) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        if (inputAlamat) {
+            inputAlamat.addEventListener('input', filterTableRowsLocally);
+        }
+        if (inputSearch) {
+            inputSearch.addEventListener('input', filterTableRowsLocally);
+        }
+
+        // Initial view setup
+        const savedPelangganView = localStorage.getItem('cjp_pelanggan_view');
+        if (savedPelangganView) {
+            setPelangganView(savedPelangganView);
+        } else {
+            setPelangganView('card');
+        }
 
             var els = document.querySelectorAll('.reveal');
             if (!('IntersectionObserver' in window)) { els.forEach(function (e) { e.classList.add('is-visible'); }); return; }
