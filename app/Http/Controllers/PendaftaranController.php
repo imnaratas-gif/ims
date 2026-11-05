@@ -23,6 +23,12 @@ class PendaftaranController extends Controller
                 DB::statement("ALTER TABLE `m_pelanggan` ADD `tipe_pelanggan` VARCHAR(50) NULL DEFAULT NULL");
             }
         } catch (\Throwable $e) {}
+
+        try {
+            if (Schema::hasTable('trx_batchjob_register') && !Schema::hasColumn('trx_batchjob_register', 'site_lokasi')) {
+                DB::statement("ALTER TABLE `trx_batchjob_register` ADD `site_lokasi` VARCHAR(150) NULL DEFAULT NULL AFTER `alamat_pasang`");
+            }
+        } catch (\Throwable $e) {}
     }
 
     public function create(Request $request)
@@ -621,6 +627,7 @@ class PendaftaranController extends Controller
             'foto_bangunan' => 'required|file|mimes:jpeg,png,jpg,webp,pdf|max:5120',
 
             // Section 3: Alamat & Lokasi Pemasangan
+            'site_lokasi' => 'nullable|string|max:150',
             'provinsi_pasang' => 'required|string',
             'kota_pasang' => 'required|string',
             'kecamatan_pasang' => 'required|string',
@@ -853,6 +860,7 @@ class PendaftaranController extends Controller
                 'rw_pasang' => substr($validated['rw_pasang'], 0, 3),
                 'nomor_bangunan' => !empty($validated['nomor_bangunan']) ? substr($validated['nomor_bangunan'], 0, 10) : null,
                 'alamat_pasang' => $validated['alamat_pasang'],
+                'site_lokasi' => !empty($request->site_lokasi) ? substr($request->site_lokasi, 0, 150) : null,
                 'kode_wilayah_kelurahan_pasang' => $validated['kelurahan_pasang'],
                 'jenis_bangunan' => substr($namaJenisBangunan, 0, 50),
                 'lon_lat' => !empty($validated['lon_lat']) ? substr($validated['lon_lat'], 0, 100) : null,
@@ -886,6 +894,9 @@ class PendaftaranController extends Controller
                 }
                 if (!\Illuminate\Support\Facades\Schema::hasColumn('trx_batchjob_register', 'tipe_pelanggan')) {
                     unset($regInsertData['tipe_pelanggan']);
+                }
+                if (!\Illuminate\Support\Facades\Schema::hasColumn('trx_batchjob_register', 'site_lokasi')) {
+                    unset($regInsertData['site_lokasi']);
                 }
             } catch (\Throwable $e) {}
 
@@ -1107,7 +1118,7 @@ class PendaftaranController extends Controller
         }
 
         return view('pendaftaran.edit', compact(
-            'data', 'bangunan', 'kategori', 'groupLayanan', 'sales', 'provinsi',
+            'data', 'reg', 'bangunan', 'kategori', 'groupLayanan', 'sales', 'provinsi',
             'paketList', 'kotaKtpList', 'kecKtpList', 'kelKtpList',
             'kotaPasangList', 'kecPasangList', 'kelPasangList'
         ));
@@ -1149,6 +1160,7 @@ class PendaftaranController extends Controller
             'foto_bangunan' => 'nullable|file|mimes:jpeg,png,jpg,webp,pdf|max:5120',
 
             // Section 3: Alamat & Lokasi Pemasangan
+            'site_lokasi' => 'nullable|string|max:150',
             'provinsi_pasang' => 'required|string',
             'kota_pasang' => 'required|string',
             'kecamatan_pasang' => 'required|string',
@@ -1313,6 +1325,7 @@ class PendaftaranController extends Controller
                 'rw_pasang' => $validated['rw_pasang'],
                 'nomor_bangunan' => $validated['nomor_bangunan'],
                 'alamat_pasang' => $validated['alamat_pasang'],
+                'site_lokasi' => !empty($request->site_lokasi) ? substr($request->site_lokasi, 0, 150) : null,
                 'kode_wilayah_kelurahan_pasang' => $validated['kelurahan_pasang'],
                 'jenis_bangunan' => $namaJenisBangunan,
                 'lon_lat' => $validated['lon_lat'] ?? null,
@@ -1348,11 +1361,15 @@ class PendaftaranController extends Controller
             }
 
             try {
+                if (!\Illuminate\Support\Facades\Schema::hasColumn('trx_batchjob_register', 'site_lokasi')) {
+                    unset($batchjobUpdate['site_lokasi']);
+                }
                 DB::table('trx_batchjob_register')
                     ->where('nomor_internet', $nomorInternet)
                     ->update($batchjobUpdate);
             } catch (\Throwable $e) {
                 unset($batchjobUpdate['tipe_pelanggan']);
+                unset($batchjobUpdate['site_lokasi']);
                 DB::table('trx_batchjob_register')
                     ->where('nomor_internet', $nomorInternet)
                     ->update($batchjobUpdate);

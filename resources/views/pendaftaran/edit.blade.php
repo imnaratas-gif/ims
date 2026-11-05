@@ -517,6 +517,12 @@
                     </div>
                 </div>
 
+                <!-- Site Lokasi Pemasangan -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Site Lokasi <span class="text-rose-500 font-bold">*</span></label>
+                    <input type="text" name="site_lokasi" id="editSiteLokasi" required placeholder="Masukkan nama / site lokasi pemasangan" value="{{ old('site_lokasi', $data->site_lokasi ?? ($reg->site_lokasi ?? '')) }}" class="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-slate-800 py-2.5 px-3.5 text-sm rounded-xl outline-none transition-all placeholder-slate-400">
+                </div>
+
                 <!-- Cascading Dropdown Wilayah Pemasangan -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
