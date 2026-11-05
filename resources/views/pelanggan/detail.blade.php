@@ -273,9 +273,12 @@
                                     {{ implode(', ', array_filter([$customer->nama_kelurahan_pasang ?? null, $customer->nama_kecamatan_pasang ?? null, $customer->nama_kota_corp ?? $customer->nama_kota_pasang ?? null, $customer->nama_provinsi_pasang ?? null])) }}
                                 </p>
                             @endif
-                            @if($customer->jenis_bangunan)
+                            @if($customer->jenis_bangunan || !empty($customer->site_lokasi))
                                 <p class="text-[11px] text-blue-600 mt-1 font-semibold">
-                                    <i class="fa-solid fa-building text-[10px] mr-1"></i> Jenis Bangunan: {{ $customer->jenis_bangunan }}
+                                    <i class="fa-solid fa-building text-[10px] mr-1"></i> Jenis Bangunan: {{ $customer->jenis_bangunan ?: '-' }}
+                                    @if(!empty($customer->site_lokasi))
+                                        <span class="text-slate-700 font-bold ml-1">({{ $customer->site_lokasi }})</span>
+                                    @endif
                                 </p>
                             @endif
                             @if(!empty($customer->note_request))

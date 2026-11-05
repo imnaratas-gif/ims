@@ -449,9 +449,12 @@
 
                             <!-- Lokasi & Alamat Singkat -->
                             <div class="space-y-1 text-xs">
-                                <div class="flex items-center gap-1 text-[11px] font-bold text-gray-700 uppercase">
+                                <div class="flex items-center gap-1.5 flex-wrap text-[11px] font-bold text-gray-700 uppercase">
                                     <i class="fa-solid fa-building text-slate-400 text-[10px]"></i>
                                     <span>{{ $c->jenis_bangunan ?: 'RUMAH-PRIBADI' }}</span>
+                                    @if(!empty($c->site_lokasi))
+                                        <span class="text-blue-600 font-bold">- {{ $c->site_lokasi }}</span>
+                                    @endif
                                 </div>
                                 <div class="flex items-start gap-1.5 text-xs text-gray-600 leading-relaxed">
                                     <i class="fa-solid fa-location-dot text-slate-400 mt-0.5 text-[11px] shrink-0"></i>
@@ -664,8 +667,11 @@
 
                                 <!-- Col 2: Lokasi Pemasangan -->
                                 <td class="py-4 px-6 align-top space-y-1 max-w-xs">
-                                    <div class="font-bold text-gray-700 uppercase text-[11px]">
-                                        {{ $c->jenis_bangunan ?: 'RUMAH-PRIBADI' }}
+                                    <div class="font-bold text-gray-700 uppercase text-[11px] flex items-center gap-1.5 flex-wrap">
+                                        <span>{{ $c->jenis_bangunan ?: 'RUMAH-PRIBADI' }}</span>
+                                        @if(!empty($c->site_lokasi))
+                                            <span class="text-blue-600 font-bold">- {{ $c->site_lokasi }}</span>
+                                        @endif
                                     </div>
                                     <div class="text-xs text-gray-600 leading-relaxed uppercase line-clamp-2" title="{{ $c->alamat_pasang ?: $c->alamat_p ?: '-' }}">
                                         {{ $formatShortAlamat($c) }}

@@ -270,9 +270,12 @@
 
                         <!-- Lokasi Pemasangan (Alamat Diringkas) -->
                         <div class="text-xs space-y-1">
-                            <div class="flex items-center gap-1.5 text-slate-700 font-semibold">
+                            <div class="flex items-center gap-1.5 text-slate-700 font-semibold flex-wrap">
                                 <i class="fa-solid fa-house-chimney text-slate-400 text-[11px] flex-shrink-0"></i>
                                 <span>{{ $r->jenis_bangunan ?: '-' }}</span>
+                                @if(!empty($r->site_lokasi))
+                                    <span class="text-blue-600 font-bold text-xs">- {{ $r->site_lokasi }}</span>
+                                @endif
                             </div>
                             <p class="text-[11px] text-slate-500 leading-relaxed pl-4 line-clamp-2" title="{{ $fullAlamat }}">
                                 {{ $shortAlamat }}
@@ -526,7 +529,12 @@
                             </td>
                             <td class="py-4 px-4 align-top"><p class="text-sm font-semibold text-gray-700">{{ $r->nama_perusahaan ?: ($r->nama_pelanggan ?: '-') }}</p></td>
                             <td class="py-4 px-4 align-top max-w-xs">
-                                <p class="text-sm font-bold text-gray-800">{{ $r->jenis_bangunan ?: '-' }}</p>
+                                <p class="text-sm font-bold text-gray-800 flex items-center gap-1.5 flex-wrap">
+                                    <span>{{ $r->jenis_bangunan ?: '-' }}</span>
+                                    @if(!empty($r->site_lokasi))
+                                        <span class="text-blue-600 font-bold text-xs">- {{ $r->site_lokasi }}</span>
+                                    @endif
+                                </p>
                                 <p class="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-2" title="{{ $r->alamat_p ?: ($r->alamat_pasang ?: '-') }}">{{ $formatShortAlamat($r) }}</p>
                             </td>
                               <td class="py-4 px-4 align-top">

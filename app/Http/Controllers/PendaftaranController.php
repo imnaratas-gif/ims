@@ -240,6 +240,26 @@ class PendaftaranController extends Controller
             } catch (\Throwable $e) {}
         }
 
+        // Bulk fallback lookup for site_lokasi if missing from view_batchjob
+        $missingSiteNomors = $rows->getCollection()->filter(fn($r) => empty($r->site_lokasi) && !empty($r->nomor_internet))->pluck('nomor_internet')->toArray();
+        if (!empty($missingSiteNomors)) {
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('trx_batchjob_register', 'site_lokasi')) {
+                    $sites = DB::table('trx_batchjob_register')
+                        ->whereIn('nomor_internet', $missingSiteNomors)
+                        ->whereNotNull('site_lokasi')
+                        ->where('site_lokasi', '!=', '')
+                        ->pluck('site_lokasi', 'nomor_internet');
+
+                    foreach ($rows->getCollection() as $r) {
+                        if (empty($r->site_lokasi) && isset($sites[$r->nomor_internet])) {
+                            $r->site_lokasi = $sites[$r->nomor_internet];
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
         // Deteksi level Admin & NOC untuk conditional rendering
         $u = session('user', []);
         $userLevel = strtoupper($u['level'] ?? '');

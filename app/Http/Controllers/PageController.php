@@ -603,6 +603,26 @@ class PageController extends Controller
             } catch (\Throwable $e) {}
         }
 
+        // Bulk fallback lookup for site_lokasi if missing from view_batchjob
+        $missingSiteNomors = $allTableRows->filter(fn($r) => empty($r->site_lokasi) && !empty($r->nomor_internet))->pluck('nomor_internet')->toArray();
+        if (!empty($missingSiteNomors)) {
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('trx_batchjob_register', 'site_lokasi')) {
+                    $sites = DB::table('trx_batchjob_register')
+                        ->whereIn('nomor_internet', $missingSiteNomors)
+                        ->whereNotNull('site_lokasi')
+                        ->where('site_lokasi', '!=', '')
+                        ->pluck('site_lokasi', 'nomor_internet');
+
+                    foreach ($allTableRows as $r) {
+                        if (empty($r->site_lokasi) && isset($sites[$r->nomor_internet])) {
+                            $r->site_lokasi = $sites[$r->nomor_internet];
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
         $allTableRows->transform(function ($r) {
             $r = $this->decorate($r);
             $r->section = $this->sectionOf($r);
@@ -755,6 +775,7 @@ class PageController extends Controller
         $customer->rw_pasang = $reg->rw_pasang ?? $customer->rw_pasang ?? null;
         $customer->nomor_bangunan = $reg->nomor_bangunan ?? $customer->nomor_bangunan ?? null;
         $customer->alamat_pasang = $reg->alamat_pasang ?? $customer->alamat_pasang ?? $customer->alamat_p ?? null;
+        $customer->site_lokasi = $reg->site_lokasi ?? $customer->site_lokasi ?? null;
         $customer->jenis_bangunan = $reg->jenis_bangunan ?? $customer->jenis_bangunan ?? null;
         $customer->note_request = $reg->note_request ?? $customer->note_request ?? null;
         $customer->lon_lat_pasang = $reg->lon_lat ?? $customer->lon_lat ?? null;
@@ -1159,6 +1180,7 @@ class PageController extends Controller
         $customer->rw_pasang = $reg->rw_pasang ?? $customer->rw_pasang ?? null;
         $customer->nomor_bangunan = $reg->nomor_bangunan ?? $customer->nomor_bangunan ?? null;
         $customer->alamat_pasang = $reg->alamat_pasang ?? $customer->alamat_pasang ?? $customer->alamat_p ?? null;
+        $customer->site_lokasi = $reg->site_lokasi ?? $customer->site_lokasi ?? null;
         $customer->jenis_bangunan = $reg->jenis_bangunan ?? $customer->jenis_bangunan ?? null;
         $customer->note_request = $reg->note_request ?? $customer->note_request ?? null;
         $customer->lon_lat_pasang = $reg->lon_lat ?? $customer->lon_lat ?? null;
