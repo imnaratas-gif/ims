@@ -185,13 +185,49 @@ class PageController extends Controller
      * =======================================================*/
     public function tiket()
     {
+        self::restoreMissingViews();
+
+        try {
+            $pasangCount = DB::table('view_batchjob')
+                ->where(function ($q) {
+                    $q->where('hide', '0')->orWhereNull('hide');
+                })
+                ->where(function ($q) {
+                    $q->whereNull('aktivasi_date_finish')
+                      ->orWhere('aktivasi_date_finish', '');
+                })
+                ->where(function ($q) {
+                    $q->whereNull('status_reg')
+                      ->orWhereNotIn('status_reg', ['16', '17']);
+                })
+                ->where(function ($q) {
+                    $q->whereNull('desc_registrasi')
+                      ->orWhere(function ($sub) {
+                          $sub->where('desc_registrasi', 'not like', '%SELESAI AKTIVASI%')
+                              ->where('desc_registrasi', 'not like', '%BATAL%')
+                              ->where('desc_registrasi', 'not like', '%GAGAL%');
+                      });
+                })
+                ->count();
+        } catch (\Throwable $e) {
+            $pasangCount = DB::table('trx_batchjob_register')
+                ->where(function ($q) {
+                    $q->where('hide', '0')->orWhereNull('hide');
+                })
+                ->where(function ($q) {
+                    $q->whereNull('status_reg')
+                      ->orWhereNotIn('status_reg', ['16', '17']);
+                })
+                ->count();
+        }
+
         $counts = [
             'gangguan'  => DB::table('trx_tiket_gangguan')->count(),
             'password'  => 0, // CATATAN: skema ims TIDAK punya tabel tiket ganti-password -> selalu 0 (bukan dummy)
             'coverage'  => DB::table('trx_coverage_area')->count(),
             'terminasi' => DB::table('trx_terminasi')->count(),
             'suspend'   => DB::table('trx_suspend')->count(),
-            'pasang'    => DB::table('trx_batchjob_register')->count(),
+            'pasang'    => $pasangCount,
             'ubah'      => DB::table('trx_ubah_layanan')->count(),
         ];
         return view('tiket', compact('counts'));
