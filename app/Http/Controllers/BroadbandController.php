@@ -321,15 +321,15 @@ class BroadbandController extends Controller
                 } catch (\Throwable $e) {}
             }
 
-            $filename = 'Laporan_Pelanggan_Broadband_Aktif_' . date('Ymd_His') . '.xls';
+            $filename = 'Laporan_Pelanggan_Broadband_Aktif_' . date('Ymd_His') . '.xlsx';
 
-            $totalSumMaster = 0;
+            $totalSumMaster = 0.0;
             foreach ($data as $item) {
                 if (!empty($item->harga_bandwith)) {
                     $totalSumMaster += (float)$item->harga_bandwith;
                 }
             }
-            $totalSumCjp = $canSeeCjp ? ($totalSumMaster * 0.25) : 0;
+            $totalSumCjp = $canSeeCjp ? ($totalSumMaster * 0.25) : 0.0;
 
             $userAuth = $u['username'] ?? ($u['nama'] ?? 'KR7460');
 
@@ -339,22 +339,19 @@ class BroadbandController extends Controller
                 'group_layanan' => $request->group_layanan ?? null,
             ];
 
-            $content = view('broadband.export_excel', compact(
-                'data',
-                'canSeeCjp',
-                'totalSumMaster',
-                'totalSumCjp',
-                'userAuth',
-                'appliedFilters'
-            ))->render();
+            $exporter = new \App\Services\BroadbandXlsxExporter();
+            $tmpFile = $exporter->generate(
+                $data,
+                $canSeeCjp,
+                $totalSumMaster,
+                $totalSumCjp,
+                $userAuth,
+                $appliedFilters
+            );
 
-            return response($content, 200, [
-                'Content-Type'        => 'application/vnd.ms-excel; charset=UTF-8',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                'Pragma'              => 'public',
-                'Cache-Control'       => 'max-age=0, must-revalidate',
-                'Expires'             => '0',
-            ]);
+            return response()->download($tmpFile, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ])->deleteFileAfterSend(true);
 
         } catch (\Throwable $e) {
             return redirect()->route('broadband.index')->withErrors(['error' => 'Gagal mengekspor data: ' . $e->getMessage()]);
