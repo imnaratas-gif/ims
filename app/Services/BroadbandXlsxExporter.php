@@ -146,10 +146,15 @@ class BroadbandXlsxExporter
             $merges[] = 'G7:J7';
         }
 
+        $lastDataRow = 9 + $rowCount;
+        $totalRow = $rowCount > 0 ? ($lastDataRow + 1) : 11;
+
         $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n";
         $xml .= '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+        $xml .= '<dimension ref="A1:' . $lastColLetter . $totalRow . '"/>';
         $xml .= '<sheetViews><sheetView tabSelected="1" workbookViewId="0">';
         $xml .= '<pane ySplit="9" topLeftCell="A10" activePane="bottomLeft" state="frozen"/>';
+        $xml .= '<selection pane="bottomLeft" activeCell="A10" sqref="A10"/>';
         $xml .= '</sheetView></sheetViews>';
         $xml .= '<sheetFormatPr defaultRowHeight="22"/>';
 
@@ -351,16 +356,17 @@ class BroadbandXlsxExporter
 
         $xml .= '</sheetData>';
 
+        // AutoFilter MUST appear BEFORE mergeCells per ECMA-376 CT_Worksheet XSD
+        if ($rowCount > 0) {
+            $xml .= '<autoFilter ref="A9:' . $lastColLetter . $lastDataRow . '"/>';
+        }
+
         // Merge cells
         $xml .= '<mergeCells count="' . count($merges) . '">';
         foreach ($merges as $ref) {
             $xml .= '<mergeCell ref="' . $ref . '"/>';
         }
         $xml .= '</mergeCells>';
-
-        // AutoFilter on Table Header
-        $filterEndRow = max(9, $lastDataRow);
-        $xml .= '<autoFilter ref="A9:' . $lastColLetter . $filterEndRow . '"/>';
 
         $xml .= '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>';
         $xml .= '<pageSetup orientation="landscape" paperSize="9"/>';
@@ -377,12 +383,21 @@ class BroadbandXlsxExporter
 
     private function numCell(string $ref, float|int $value, int $style): string
     {
-        return '<c r="' . $ref . '" s="' . $style . '"><v>' . $value . '</v></c>';
+        return '<c r="' . $ref . '" s="' . $style . '"><v>' . $this->formatXmlNumber($value) . '</v></c>';
     }
 
     private function formulaNumCell(string $ref, string $formula, float|int $cachedValue, int $style): string
     {
-        return '<c r="' . $ref . '" s="' . $style . '"><f>' . $formula . '</f><v>' . $cachedValue . '</v></c>';
+        return '<c r="' . $ref . '" s="' . $style . '"><f>' . $formula . '</f><v>' . $this->formatXmlNumber($cachedValue) . '</v></c>';
+    }
+
+    private function formatXmlNumber(float|int $value): string
+    {
+        if (is_int($value)) {
+            return (string)$value;
+        }
+        $formatted = rtrim(rtrim(sprintf('%.4F', $value), '0'), '.');
+        return $formatted === '-0' ? '0' : $formatted;
     }
 
     private function emptyCell(string $ref, int $style): string
