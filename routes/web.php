@@ -281,6 +281,7 @@ Route::middleware(\App\Http\Middleware\EnsureAuthenticated::class)->group(functi
 
     // Broadband (Database ke-2: ims_v3, tabel trx_batchjob_register) - Dapat diakses semua role
     Route::get('/broadband', [BroadbandController::class, 'index'])->name('broadband.index');
+    Route::get('/broadband/export', [BroadbandController::class, 'export'])->name('broadband.export');
     Route::get('/broadband/{nomor_internet}', [BroadbandController::class, 'show'])->name('broadband.show');
     Route::get('/broadband/{nomor_internet}/modal', [BroadbandController::class, 'modal'])->name('broadband.modal');
 

@@ -230,6 +230,205 @@ class BroadbandController extends Controller
     }
 
     /**
+     * Export data pelanggan Broadband aktif ke format CSV/Excel
+     */
+    public function export(Request $request)
+    {
+        try {
+            $v3 = DB::connection('ims_v3');
+            $v3->getPdo();
+
+            // Query hanya untuk pelanggan yang AKTIF
+            $query = $v3->table('trx_batchjob_register as t')
+                ->leftJoin('m_pop as p', 'p.kode_pop', '=', 't.kode_pop')
+                ->leftJoin('m_bandwith as b', 'b.kode_bandwith', '=', 't.kode_bandwith')
+                ->leftJoin('m_bandwith_kategori as bk', 'bk.kode_kategori_bandwith', '=', 'b.kode_kategori_bandwith')
+                ->leftJoin('m_pelanggan as mp', 'mp.nik_penduduk', '=', 't.nik_penduduk')
+                ->leftJoin('m_wilayah as w', 'w.kode_wilayah_kelurahan', '=', 't.kode_wilayah_kelurahan_pasang')
+                ->where(function ($q) {
+                    $q->where('t.hide', '0')->orWhereNull('t.hide');
+                })
+                ->where(function($q) {
+                    $q->whereNull('t.is_termin')->orWhere('t.is_termin', '!=', '1');
+                })
+                ->where(function($q) {
+                    $q->whereNull('t.is_suspend')->orWhere('t.is_suspend', '!=', '1');
+                })
+                ->select(
+                    't.*',
+                    'p.nama_pop',
+                    'b.nominal_bandwith',
+                    'b.harga_bandwith',
+                    'bk.nama_kategori_bandwith',
+                    'mp.nama_penduduk',
+                    'mp.nomor_hp',
+                    'mp.email',
+                    'w.nama_kelurahan',
+                    'w.nama_kecamatan',
+                    'w.nama_kota'
+                );
+
+            // Filter Pencarian jika diisi
+            if ($request->filled('search')) {
+                $s = trim($request->search);
+                $query->where(function($q) use ($s) {
+                    $q->where('t.nomor_internet', 'like', "%{$s}%")
+                      ->orWhere('t.nama_pelanggan', 'like', "%{$s}%")
+                      ->orWhere('mp.nama_penduduk', 'like', "%{$s}%")
+                      ->orWhere('t.nik_penduduk', 'like', "%{$s}%")
+                      ->orWhere('t.alamat_pasang', 'like', "%{$s}%")
+                      ->orWhere('t.ont_us', 'like', "%{$s}%")
+                      ->orWhere('t.ont_ps', 'like', "%{$s}%")
+                      ->orWhere('t.olt', 'like', "%{$s}%");
+                });
+            }
+
+            // Filter POP
+            if ($request->filled('pop') && $request->pop !== 'ALL') {
+                $query->where('t.kode_pop', $request->pop);
+            }
+
+            // Filter Group Layanan
+            if ($request->filled('group_layanan') && $request->group_layanan !== 'ALL') {
+                $query->where('t.group_layanan', $request->group_layanan);
+            }
+
+            $data = $query->orderByDesc('t.date_create')->get();
+
+            // Cek hak akses user untuk kolom Harga CJP
+            $u = session('user', []);
+            $userLevel    = strtoupper($u['level'] ?? '');
+            $kodeLevel    = $u['kode_level'] ?? '';
+            $username     = strtoupper(trim($u['username'] ?? ''));
+            $kodeKaryawan = strtoupper(trim($u['kode_karyawan'] ?? ''));
+            $kodePengguna = strtoupper(trim($u['kode_pengguna'] ?? ''));
+
+            $isAdmin = ($userLevel === 'ADMIN' || $kodeLevel === 'lv00001' || str_contains($userLevel, 'ADMIN') || $username === 'ADMIN');
+            $isKR7460 = in_array('KR7460', [$username, $kodeKaryawan, $kodePengguna], true);
+            $canSeeCjp = $isAdmin || $isKR7460;
+
+            if (!$canSeeCjp && !empty($username)) {
+                try {
+                    $uDb = DB::table('view_pengguna')->where('username', $u['username'] ?? '')->first();
+                    if ($uDb) {
+                        $dbUname = strtoupper(trim($uDb->username ?? ''));
+                        $dbKaryawan = strtoupper(trim($uDb->kode_karyawan ?? ''));
+                        $dbPengguna = strtoupper(trim($uDb->kode_pengguna ?? ''));
+                        if (in_array('KR7460', [$dbUname, $dbKaryawan, $dbPengguna], true)) {
+                            $canSeeCjp = true;
+                        }
+                    }
+                } catch (\Throwable $e) {}
+            }
+
+            $filename = 'Data_Pelanggan_Broadband_Aktif_' . date('Ymd_His') . '.csv';
+
+            $headers = [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Pragma' => 'no-cache',
+                'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+                'Expires' => '0'
+            ];
+
+            $callback = function () use ($data, $canSeeCjp) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, "\xEF\xBB\xBF"); // UTF-8 BOM untuk Excel
+
+                $csvHeaders = [
+                    'No. Internet',
+                    'Nama Pelanggan',
+                    'NIK',
+                    'No. HP',
+                    'Email',
+                    'Bandwidth',
+                    'Kategori Bandwidth',
+                    'Harga Bandwidth Master',
+                ];
+
+                if ($canSeeCjp) {
+                    $csvHeaders[] = 'Harga CJP (25%)';
+                }
+
+                $csvHeaders = array_merge($csvHeaders, [
+                    'Group Layanan',
+                    'Media Akses',
+                    'POP',
+                    'Jenis Bangunan',
+                    'Alamat Pemasangan',
+                    'RT/RW',
+                    'No. Bangunan',
+                    'Kelurahan',
+                    'Kecamatan',
+                    'Kota/Kabupaten',
+                    'ONT User',
+                    'ONT PS',
+                    'OLT',
+                    'Index OLT',
+                    'Sales',
+                    'Status',
+                    'Tanggal Registrasi'
+                ]);
+
+                fputcsv($file, $csvHeaders);
+
+                foreach ($data as $row) {
+                    $nama = $row->nama_pelanggan ?: ($row->nama_penduduk ?? '-');
+                    $nik = $row->nik_penduduk ?? '-';
+                    $telp = $row->telp_pelanggan ?? $row->nomor_hp ?? '-';
+                    $email = $row->email_pelanggan ?? $row->email ?? '-';
+                    $bw = $row->nominal_bandwith ?: ($row->kode_bandwith ?? '-');
+                    $hargaMaster = !empty($row->harga_bandwith) ? (float)$row->harga_bandwith : 0;
+
+                    $rowFields = [
+                        $row->nomor_internet ?? '-',
+                        $nama,
+                        "'" . $nik,
+                        "'" . $telp,
+                        $email,
+                        $bw,
+                        $row->nama_kategori_bandwith ?? '-',
+                        $hargaMaster,
+                    ];
+
+                    if ($canSeeCjp) {
+                        $rowFields[] = $hargaMaster * 0.25;
+                    }
+
+                    $rowFields = array_merge($rowFields, [
+                        $row->group_layanan ?? '-',
+                        $row->media_akses ?? '-',
+                        $row->nama_pop ?: ($row->kode_pop ?? '-'),
+                        $row->jenis_bangunan ?? '-',
+                        $row->alamat_pasang ?? '-',
+                        ($row->rt_pasang ?? '-') . '/' . ($row->rw_pasang ?? '-'),
+                        $row->nomor_bangunan ?? '-',
+                        $row->nama_kelurahan ?? '-',
+                        $row->nama_kecamatan ?? '-',
+                        $row->nama_kota ?? '-',
+                        $row->ont_us ?? '-',
+                        $row->ont_ps ?? '-',
+                        $row->olt ?? '-',
+                        $row->index_olt ?? '-',
+                        $row->nama_sales ?? '-',
+                        'AKTIF',
+                        $row->date_create ? \Carbon\Carbon::parse($row->date_create)->format('d/m/Y H:i') : '-'
+                    ]);
+
+                    fputcsv($file, $rowFields);
+                }
+
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+
+        } catch (\Throwable $e) {
+            return redirect()->route('broadband.index')->withErrors(['error' => 'Gagal mengekspor data: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
      * Tampilan detail lengkap profil data pelanggan Broadband (Read-only)
      */
     public function show($nomor_internet)

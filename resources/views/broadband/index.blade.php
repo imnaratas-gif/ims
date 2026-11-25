@@ -244,18 +244,21 @@
         </div>
 
         {{-- Action Buttons & Entries --}}
-        <div class="flex items-center gap-2">
-            <select name="entries" class="px-2.5 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+        <div class="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
+            <select name="entries" class="px-2 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                 <option value="10" {{ request('entries') == 10 ? 'selected' : '' }}>10</option>
                 <option value="25" {{ request('entries') == 25 ? 'selected' : '' }}>25</option>
                 <option value="50" {{ request('entries') == 50 ? 'selected' : '' }}>50</option>
                 <option value="100" {{ request('entries') == 100 ? 'selected' : '' }}>100</option>
             </select>
-            <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/20">
-                <i class="fa-solid fa-filter text-[11px]"></i> Filter
+            <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 px-2.5 rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm shadow-blue-500/20 whitespace-nowrap cursor-pointer">
+                <i class="fa-solid fa-filter text-[10px]"></i> Filter
             </button>
+            <a href="{{ route('broadband.export', request()->query()) }}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs py-2 px-2.5 rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm shadow-emerald-500/20 whitespace-nowrap cursor-pointer" title="Export Excel (Pelanggan Aktif Saja)">
+                <i class="fa-solid fa-file-excel text-[11px]"></i> Export
+            </a>
             @if(request()->hasAny(['search', 'pop', 'group_layanan', 'status', 'entries']))
-                <a href="{{ route('broadband.index') }}" class="px-3 py-2 text-xs text-gray-500 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all" title="Reset Filter">
+                <a href="{{ route('broadband.index') }}" class="px-2.5 py-2 text-xs text-gray-500 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all cursor-pointer" title="Reset Filter">
                     <i class="fa-solid fa-rotate-left"></i>
                 </a>
             @endif
