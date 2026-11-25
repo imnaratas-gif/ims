@@ -321,107 +321,40 @@ class BroadbandController extends Controller
                 } catch (\Throwable $e) {}
             }
 
-            $filename = 'Data_Pelanggan_Broadband_Aktif_' . date('Ymd_His') . '.csv';
+            $filename = 'Laporan_Pelanggan_Broadband_Aktif_' . date('Ymd_His') . '.xls';
 
-            $headers = [
-                'Content-Type' => 'text/csv; charset=UTF-8',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                'Pragma' => 'no-cache',
-                'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-                'Expires' => '0'
+            $totalSumMaster = 0;
+            foreach ($data as $item) {
+                if (!empty($item->harga_bandwith)) {
+                    $totalSumMaster += (float)$item->harga_bandwith;
+                }
+            }
+            $totalSumCjp = $canSeeCjp ? ($totalSumMaster * 0.25) : 0;
+
+            $userAuth = $u['username'] ?? ($u['nama'] ?? 'KR7460');
+
+            $appliedFilters = [
+                'search'        => $request->search ?? null,
+                'pop'           => $request->pop ?? null,
+                'group_layanan' => $request->group_layanan ?? null,
             ];
 
-            $callback = function () use ($data, $canSeeCjp) {
-                $file = fopen('php://output', 'w');
-                fprintf($file, "\xEF\xBB\xBF"); // UTF-8 BOM untuk Excel
+            $content = view('broadband.export_excel', compact(
+                'data',
+                'canSeeCjp',
+                'totalSumMaster',
+                'totalSumCjp',
+                'userAuth',
+                'appliedFilters'
+            ))->render();
 
-                $csvHeaders = [
-                    'No. Internet',
-                    'Nama Pelanggan',
-                    'NIK',
-                    'No. HP',
-                    'Email',
-                    'Bandwidth',
-                    'Kategori Bandwidth',
-                    'Harga Bandwidth Master',
-                ];
-
-                if ($canSeeCjp) {
-                    $csvHeaders[] = 'Harga CJP (25%)';
-                }
-
-                $csvHeaders = array_merge($csvHeaders, [
-                    'Group Layanan',
-                    'Media Akses',
-                    'POP',
-                    'Jenis Bangunan',
-                    'Alamat Pemasangan',
-                    'RT/RW',
-                    'No. Bangunan',
-                    'Kelurahan',
-                    'Kecamatan',
-                    'Kota/Kabupaten',
-                    'ONT User',
-                    'ONT PS',
-                    'OLT',
-                    'Index OLT',
-                    'Sales',
-                    'Status',
-                    'Tanggal Registrasi'
-                ]);
-
-                fputcsv($file, $csvHeaders);
-
-                foreach ($data as $row) {
-                    $nama = $row->nama_pelanggan ?: ($row->nama_penduduk ?? '-');
-                    $nik = $row->nik_penduduk ?? '-';
-                    $telp = $row->telp_pelanggan ?? $row->nomor_hp ?? '-';
-                    $email = $row->email_pelanggan ?? $row->email ?? '-';
-                    $bw = $row->nominal_bandwith ?: ($row->kode_bandwith ?? '-');
-                    $hargaMaster = !empty($row->harga_bandwith) ? (float)$row->harga_bandwith : 0;
-
-                    $rowFields = [
-                        $row->nomor_internet ?? '-',
-                        $nama,
-                        "'" . $nik,
-                        "'" . $telp,
-                        $email,
-                        $bw,
-                        $row->nama_kategori_bandwith ?? '-',
-                        $hargaMaster,
-                    ];
-
-                    if ($canSeeCjp) {
-                        $rowFields[] = $hargaMaster * 0.25;
-                    }
-
-                    $rowFields = array_merge($rowFields, [
-                        $row->group_layanan ?? '-',
-                        $row->media_akses ?? '-',
-                        $row->nama_pop ?: ($row->kode_pop ?? '-'),
-                        $row->jenis_bangunan ?? '-',
-                        $row->alamat_pasang ?? '-',
-                        ($row->rt_pasang ?? '-') . '/' . ($row->rw_pasang ?? '-'),
-                        $row->nomor_bangunan ?? '-',
-                        $row->nama_kelurahan ?? '-',
-                        $row->nama_kecamatan ?? '-',
-                        $row->nama_kota ?? '-',
-                        $row->ont_us ?? '-',
-                        $row->ont_ps ?? '-',
-                        $row->olt ?? '-',
-                        $row->index_olt ?? '-',
-                        $row->nama_sales ?? '-',
-                        'AKTIF',
-                        $row->date_create ? \Carbon\Carbon::parse($row->date_create)->format('d/m/Y H:i') : '-'
-                    ]);
-
-                    fputcsv($file, $rowFields);
-                }
-
-                fclose($file);
-            };
-
-            return response()->stream($callback, 200, $headers);
+            return response($content, 200, [
+                'Content-Type'        => 'application/vnd.ms-excel; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Pragma'              => 'public',
+                'Cache-Control'       => 'max-age=0, must-revalidate',
+                'Expires'             => '0',
+            ]);
 
         } catch (\Throwable $e) {
             return redirect()->route('broadband.index')->withErrors(['error' => 'Gagal mengekspor data: ' . $e->getMessage()]);
