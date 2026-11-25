@@ -37,12 +37,7 @@
                 ->where(function ($q) {
                     $q->where('t.hide', '0')->orWhereNull('t.hide');
                 })
-                ->where(function($q) {
-                    $q->whereNull('t.is_termin')->orWhere('t.is_termin', '!=', '1');
-                })
-                ->where(function($q) {
-                    $q->whereNull('t.is_suspend')->orWhere('t.is_suspend', '!=', '1');
-                })
+                ->where('t.status_reg', '20')
                 ->sum('b.harga_bandwith');
             $totalHargaCjpAktif = (float)$sumMasterAktif * 0.25;
         } catch (\Throwable $e) {
@@ -284,8 +279,10 @@
             <tbody class="divide-y divide-gray-100 text-gray-700">
                 @forelse ($broadbands as $row)
                     @php
+                        $statusReg    = (string) ($row->status_reg ?? '');
+                        $isAktif      = $statusReg === '20';
+                        $isSuspended  = $statusReg === '21';
                         $isTerminated = ($row->is_termin ?? '') == '1';
-                        $isSuspended  = ($row->is_suspend ?? '') == '1';
                     @endphp
                     <tr class="hover:bg-blue-50/30 transition-colors">
                         {{-- No Internet & Tgl --}}
@@ -355,19 +352,23 @@
                             @endif
                         </td>
 
-                        {{-- Status --}}
+                        {{-- Status (status_reg: 20 = Aktif, 21 = Suspend) --}}
                         <td class="py-3 px-4 text-center whitespace-nowrap">
-                            @if($isTerminated)
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Terminasi
+                            @if($isAktif)
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Aktif
                                 </span>
                             @elseif($isSuspended)
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Suspend
                                 </span>
+                            @elseif($isTerminated)
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Terminasi
+                                </span>
                             @else
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Aktif
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> {{ $row->desc_registrasi ?? ($statusReg !== '' ? 'Status ' . $statusReg : '-') }}
                                 </span>
                             @endif
                         </td>
@@ -493,13 +494,15 @@ function showQuickModal(noInternet) {
         .then(res => {
             if(res.status === 'success') {
                 const d = res.data;
+                const statusReg = String(d.status_reg ?? '');
                 const isTermin = (d.is_termin == '1');
-                const isSuspend = (d.is_suspend == '1');
-                let badgeStatus = '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Aktif</span>';
-                if(isTermin) {
-                    badgeStatus = '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Terminasi</span>';
-                } else if(isSuspend) {
+                let badgeStatus = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600 border border-gray-200"><span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> ${d.desc_registrasi || (statusReg ? 'Status ' + statusReg : '-')}</span>`;
+                if(statusReg === '20') {
+                    badgeStatus = '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Aktif</span>';
+                } else if(statusReg === '21') {
                     badgeStatus = '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Suspend</span>';
+                } else if(isTermin) {
+                    badgeStatus = '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Terminasi</span>';
                 }
 
                 body.innerHTML = `

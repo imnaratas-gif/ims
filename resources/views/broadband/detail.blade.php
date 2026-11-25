@@ -42,20 +42,26 @@
             <div class="flex items-center gap-2.5">
                 <h1 class="text-xl font-bold text-gray-800">Detail Pelanggan Broadband</h1>
                 @php
+                    $statusReg    = (string) ($item->status_reg ?? '');
+                    $isAktif      = $statusReg === '20';
+                    $isSuspended  = $statusReg === '21';
                     $isTerminated = ($item->is_termin ?? '') == '1';
-                    $isSuspended  = ($item->is_suspend ?? '') == '1';
                 @endphp
-                @if($isTerminated)
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                        <span class="w-2 h-2 rounded-full bg-rose-500"></span> Terminasi
+                @if($isAktif)
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Aktif
                     </span>
                 @elseif($isSuspended)
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                         <span class="w-2 h-2 rounded-full bg-amber-500"></span> Suspend
                     </span>
+                @elseif($isTerminated)
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span> Terminasi
+                    </span>
                 @else
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Aktif
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                        <span class="w-2 h-2 rounded-full bg-gray-400"></span> {{ $item->desc_registrasi ?? ($statusReg !== '' ? 'Status ' . $statusReg : '-') }}
                     </span>
                 @endif
                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-600">

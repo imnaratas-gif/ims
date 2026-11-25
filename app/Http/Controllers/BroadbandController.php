@@ -74,35 +74,25 @@ class BroadbandController extends Controller
 
                     $statusCounts['semua'] = (clone $baseCountQuery)->count();
                     $statusCounts['aktif'] = (clone $baseCountQuery)
-                        ->where(function($q) {
-                            $q->whereNull('is_termin')->orWhere('is_termin', '!=', '1');
-                        })
-                        ->where(function($q) {
-                            $q->whereNull('is_suspend')->orWhere('is_suspend', '!=', '1');
-                        })
+                        ->where('status_reg', '20')
                         ->count();
 
                     $statusCounts['suspend'] = (clone $baseCountQuery)
-                        ->where('is_suspend', '1')
+                        ->where('status_reg', '21')
                         ->count();
 
                     $statusCounts['terminasi'] = (clone $baseCountQuery)
                         ->where('is_termin', '1')
                         ->count();
 
-                    // Hitung total harga CJP (25% dari total harga bandwidth master untuk pelanggan aktif)
+                    // Hitung total harga CJP (25% dari total harga bandwidth master untuk pelanggan aktif: status_reg = 20)
                     try {
                         $sumMasterAktif = $v3->table('trx_batchjob_register as t')
                             ->leftJoin('m_bandwith as b', 'b.kode_bandwith', '=', 't.kode_bandwith')
                             ->where(function ($q) {
                                 $q->where('t.hide', '0')->orWhereNull('t.hide');
                             })
-                            ->where(function($q) {
-                                $q->whereNull('t.is_termin')->orWhere('t.is_termin', '!=', '1');
-                            })
-                            ->where(function($q) {
-                                $q->whereNull('t.is_suspend')->orWhere('t.is_suspend', '!=', '1');
-                            })
+                            ->where('t.status_reg', '20')
                             ->sum('b.harga_bandwith');
 
                         $totalHargaCjpAktif = (float)$sumMasterAktif * 0.25;
@@ -153,16 +143,12 @@ class BroadbandController extends Controller
                     $q->where('t.hide', '0')->orWhereNull('t.hide');
                 });
 
-                // Filter Status
+                // Filter Status (status_reg: 20 = Aktif, 21 = Suspend)
                 $statusFilter = strtolower(trim((string) $request->input('status', '')));
                 if ($statusFilter === 'aktif') {
-                    $query->where(function($q) {
-                        $q->whereNull('t.is_termin')->orWhere('t.is_termin', '!=', '1');
-                    })->where(function($q) {
-                        $q->whereNull('t.is_suspend')->orWhere('t.is_suspend', '!=', '1');
-                    });
+                    $query->where('t.status_reg', '20');
                 } elseif ($statusFilter === 'suspend') {
-                    $query->where('t.is_suspend', '1');
+                    $query->where('t.status_reg', '21');
                 } elseif ($statusFilter === 'terminasi') {
                     $query->where('t.is_termin', '1');
                 }
@@ -248,12 +234,7 @@ class BroadbandController extends Controller
                 ->where(function ($q) {
                     $q->where('t.hide', '0')->orWhereNull('t.hide');
                 })
-                ->where(function($q) {
-                    $q->whereNull('t.is_termin')->orWhere('t.is_termin', '!=', '1');
-                })
-                ->where(function($q) {
-                    $q->whereNull('t.is_suspend')->orWhere('t.is_suspend', '!=', '1');
-                })
+                ->where('t.status_reg', '20')
                 ->select(
                     't.*',
                     'p.nama_pop',
