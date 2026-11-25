@@ -3,28 +3,6 @@
       xmlns="http://www.w3.org/TR/REC-html40">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<!--[if gte mso 9]>
-<xml>
- <x:ExcelWorkbook>
-  <x:ExcelWorksheets>
-   <x:ExcelWorksheet>
-    <x:Name>Pelanggan Broadband Aktif</x:Name>
-    <x:WorksheetOptions>
-     <x:DisplayGridlines/>
-     <x:Print>
-      <x:ValidPrinterInfo/>
-      <x:PaperSizeIndex>9</x:PaperSizeIndex>
-      <x:HorizontalResolution>600</x:HorizontalResolution>
-      <x:VerticalResolution>600</x:VerticalResolution>
-     </x:Print>
-     <x:Selected/>
-     <x:DoNotDisplayGridlines>False</x:DoNotDisplayGridlines>
-    </x:WorksheetOptions>
-   </x:Worksheet>
-  </x:ExcelWorksheets>
- </x:ExcelWorkbook>
-</xml>
-<![endif]-->
 <style>
     body, table, td, th {
         font-family: 'Segoe UI', Calibri, Arial, Helvetica, sans-serif;
