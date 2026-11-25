@@ -179,10 +179,7 @@
                     <i class="fa-solid fa-wallet"></i>
                 </div>
                 <div>
-                    <div class="flex items-center gap-1.5">
-                        <p class="text-xs font-medium text-gray-500">Total Harga CJP</p>
-                        <span class="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-1.5 py-0.2 rounded">25% AKTIF</span>
-                    </div>
+                    <p class="text-xs font-medium text-gray-500">Total Harga CJP</p>
                     <h4 class="text-lg font-bold leading-tight font-mono text-emerald-600">
                         Rp {{ number_format($totalHargaCjpAktif ?? 0, 0, ',', '.') }}
                     </h4>
