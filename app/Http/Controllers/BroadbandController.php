@@ -72,7 +72,9 @@ class BroadbandController extends Controller
                             $q->where('hide', '0')->orWhereNull('hide');
                         });
 
-                    $statusCounts['semua'] = (clone $baseCountQuery)->count();
+                    $statusCounts['semua'] = (clone $baseCountQuery)
+                        ->whereIn('status_reg', ['20', '21'])
+                        ->count();
                     $statusCounts['aktif'] = (clone $baseCountQuery)
                         ->where('status_reg', '20')
                         ->count();
@@ -151,6 +153,8 @@ class BroadbandController extends Controller
                     $query->where('t.status_reg', '21');
                 } elseif ($statusFilter === 'terminasi') {
                     $query->where('t.is_termin', '1');
+                } else {
+                    $query->whereIn('t.status_reg', ['20', '21']);
                 }
 
                 // Filter POP
