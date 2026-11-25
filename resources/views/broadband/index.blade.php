@@ -28,6 +28,27 @@
             }
         } catch (\Throwable $e) {}
     }
+
+    if ($canSeeCjp && !isset($totalHargaCjpAktif)) {
+        try {
+            $v3 = \Illuminate\Support\Facades\DB::connection('ims_v3');
+            $sumMasterAktif = $v3->table('trx_batchjob_register as t')
+                ->leftJoin('m_bandwith as b', 'b.kode_bandwith', '=', 't.kode_bandwith')
+                ->where(function ($q) {
+                    $q->where('t.hide', '0')->orWhereNull('t.hide');
+                })
+                ->where(function($q) {
+                    $q->whereNull('t.is_termin')->orWhere('t.is_termin', '!=', '1');
+                })
+                ->where(function($q) {
+                    $q->whereNull('t.is_suspend')->orWhere('t.is_suspend', '!=', '1');
+                })
+                ->sum('b.harga_bandwith');
+            $totalHargaCjpAktif = (float)$sumMasterAktif * 0.25;
+        } catch (\Throwable $e) {
+            $totalHargaCjpAktif = 0;
+        }
+    }
 @endphp
 <div class="mb-6">
     <div class="flex items-center gap-2 text-xs text-gray-400 mb-1">
@@ -106,7 +127,7 @@
     $isAll = empty($currentStatus) || $currentStatus === 'semua';
 @endphp
 
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-6">
+<div class="grid grid-cols-1 sm:grid-cols-2 {{ $canSeeCjp ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} gap-3.5 mb-6">
     <!-- Semua Pelanggan -->
     <a href="{{ route('broadband.index', array_merge(request()->except('page', 'status'), ['status' => 'semua'])) }}"
        class="flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 group {{ $isAll ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20 scale-[1.01]' : 'bg-white text-gray-700 border-gray-100 hover:border-blue-300 hover:shadow-sm' }}">
@@ -153,6 +174,28 @@
         </div>
         <i class="fa-solid fa-chevron-right text-xs opacity-50 group-hover:opacity-100 transition-opacity"></i>
     </a>
+
+    @if($canSeeCjp)
+        <!-- Total Harga CJP (Pelanggan Aktif) -->
+        <a href="{{ route('broadband.index', array_merge(request()->except('page', 'status'), ['status' => 'aktif'])) }}"
+           class="flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 group bg-white text-gray-700 border-gray-100 hover:border-emerald-300 hover:shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-sm bg-emerald-50 text-emerald-600 group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <p class="text-xs font-medium text-gray-500">Total Harga CJP</p>
+                        <span class="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-1.5 py-0.2 rounded">25% AKTIF</span>
+                    </div>
+                    <h4 class="text-lg font-bold leading-tight font-mono text-emerald-600">
+                        Rp {{ number_format($totalHargaCjpAktif ?? 0, 0, ',', '.') }}
+                    </h4>
+                </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-xs opacity-50 group-hover:opacity-100 transition-opacity"></i>
+        </a>
+    @endif
 </div>
 
 {{-- Filter Bar --}}

@@ -23,6 +23,7 @@ class BroadbandController extends Controller
             'suspend'   => 0,
             'terminasi' => 0,
         ];
+        $totalHargaCjpAktif = 0;
 
         $popOptions = collect();
         $groupLayananOptions = collect();
@@ -88,6 +89,26 @@ class BroadbandController extends Controller
                     $statusCounts['terminasi'] = (clone $baseCountQuery)
                         ->where('is_termin', '1')
                         ->count();
+
+                    // Hitung total harga CJP (25% dari total harga bandwidth master untuk pelanggan aktif)
+                    try {
+                        $sumMasterAktif = $v3->table('trx_batchjob_register as t')
+                            ->leftJoin('m_bandwith as b', 'b.kode_bandwith', '=', 't.kode_bandwith')
+                            ->where(function ($q) {
+                                $q->where('t.hide', '0')->orWhereNull('t.hide');
+                            })
+                            ->where(function($q) {
+                                $q->whereNull('t.is_termin')->orWhere('t.is_termin', '!=', '1');
+                            })
+                            ->where(function($q) {
+                                $q->whereNull('t.is_suspend')->orWhere('t.is_suspend', '!=', '1');
+                            })
+                            ->sum('b.harga_bandwith');
+
+                        $totalHargaCjpAktif = (float)$sumMasterAktif * 0.25;
+                    } catch (\Throwable $e) {
+                        $totalHargaCjpAktif = 0;
+                    }
                 } catch (\Throwable $e) {
                     // Abaikan error count
                 }
@@ -200,6 +221,7 @@ class BroadbandController extends Controller
         return view('broadband.index', compact(
             'broadbands',
             'statusCounts',
+            'totalHargaCjpAktif',
             'popOptions',
             'groupLayananOptions',
             'dbConnected',
