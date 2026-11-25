@@ -1,6 +1,34 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $u = session('user', []);
+    $userLevel    = strtoupper($u['level'] ?? '');
+    $kodeLevel    = $u['kode_level'] ?? '';
+    $username     = strtoupper(trim($u['username'] ?? ''));
+    $kodeKaryawan = strtoupper(trim($u['kode_karyawan'] ?? ''));
+    $kodePengguna = strtoupper(trim($u['kode_pengguna'] ?? ''));
+
+    $isAdmin = ($userLevel === 'ADMIN' || $kodeLevel === 'lv00001' || str_contains($userLevel, 'ADMIN') || $username === 'ADMIN');
+    $isKR7460 = in_array('KR7460', [$username, $kodeKaryawan, $kodePengguna], true);
+    $canSeeCjp = $isAdmin || $isKR7460;
+
+    if (!$canSeeCjp && !empty($username)) {
+        try {
+            $uDb = \Illuminate\Support\Facades\DB::table('view_pengguna')
+                ->where('username', $u['username'] ?? '')
+                ->first();
+            if ($uDb) {
+                $dbUname = strtoupper(trim($uDb->username ?? ''));
+                $dbKaryawan = strtoupper(trim($uDb->kode_karyawan ?? ''));
+                $dbPengguna = strtoupper(trim($uDb->kode_pengguna ?? ''));
+                if (in_array('KR7460', [$dbUname, $dbKaryawan, $dbPengguna], true)) {
+                    $canSeeCjp = true;
+                }
+            }
+        } catch (\Throwable $e) {}
+    }
+@endphp
 <div class="mb-6">
     <div class="flex items-center gap-2 text-xs text-gray-400 mb-1">
         <a href="{{ route('dashboard') }}" class="hover:text-blue-500 transition-colors">IMS</a>
@@ -159,6 +187,17 @@
                     <p class="font-mono text-gray-800">
                         {{ !empty($item->harga_bandwith) ? 'Rp ' . number_format($item->harga_bandwith, 0, ',', '.') : '-' }}
                     </p>
+                    @if($canSeeCjp)
+                        <div class="mt-2.5 pt-2 border-t border-dashed border-gray-200">
+                            <label class="block text-gray-400 font-medium mb-1 flex items-center gap-1.5">
+                                <span>Harga CJP</span>
+                                <span class="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/60 font-semibold px-1.5 py-0.5 rounded">25%</span>
+                            </label>
+                            <p class="font-mono text-emerald-600 font-bold">
+                                {{ !empty($item->harga_bandwith) ? 'Rp ' . number_format((float)$item->harga_bandwith * 0.25, 0, ',', '.') : '-' }}
+                            </p>
+                        </div>
+                    @endif
                 </div>
                 <div>
                     <label class="block text-gray-400 font-medium mb-1">Group Layanan</label>

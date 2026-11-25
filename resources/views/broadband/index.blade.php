@@ -1,6 +1,34 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $u = session('user', []);
+    $userLevel    = strtoupper($u['level'] ?? '');
+    $kodeLevel    = $u['kode_level'] ?? '';
+    $username     = strtoupper(trim($u['username'] ?? ''));
+    $kodeKaryawan = strtoupper(trim($u['kode_karyawan'] ?? ''));
+    $kodePengguna = strtoupper(trim($u['kode_pengguna'] ?? ''));
+
+    $isAdmin = ($userLevel === 'ADMIN' || $kodeLevel === 'lv00001' || str_contains($userLevel, 'ADMIN') || $username === 'ADMIN');
+    $isKR7460 = in_array('KR7460', [$username, $kodeKaryawan, $kodePengguna], true);
+    $canSeeCjp = $isAdmin || $isKR7460;
+
+    if (!$canSeeCjp && !empty($username)) {
+        try {
+            $uDb = \Illuminate\Support\Facades\DB::table('view_pengguna')
+                ->where('username', $u['username'] ?? '')
+                ->first();
+            if ($uDb) {
+                $dbUname = strtoupper(trim($uDb->username ?? ''));
+                $dbKaryawan = strtoupper(trim($uDb->kode_karyawan ?? ''));
+                $dbPengguna = strtoupper(trim($uDb->kode_pengguna ?? ''));
+                if (in_array('KR7460', [$dbUname, $dbKaryawan, $dbPengguna], true)) {
+                    $canSeeCjp = true;
+                }
+            }
+        } catch (\Throwable $e) {}
+    }
+@endphp
 <div class="mb-6">
     <div class="flex items-center gap-2 text-xs text-gray-400 mb-1">
         <a href="{{ route('dashboard') }}" class="hover:text-blue-500 transition-colors">IMS</a>
@@ -395,6 +423,8 @@
 </div>
 
 <script>
+const canSeeCjp = {{ $canSeeCjp ? 'true' : 'false' }};
+
 function showQuickModal(noInternet) {
     const modal = document.getElementById('quickModal');
     const titleNo = document.getElementById('modal-no-internet');
@@ -445,6 +475,10 @@ function showQuickModal(noInternet) {
                             <div class="space-y-1.5">
                                 <div><span class="text-gray-400">Bandwidth:</span> <strong class="text-blue-600">${d.nominal_bandwith || d.kode_bandwith || '-'}</strong></div>
                                 <div><span class="text-gray-400">Kategori:</span> <span class="text-gray-700">${d.nama_kategori_bandwith || '-'}</span></div>
+                                ${canSeeCjp && d.harga_bandwith ? `
+                                    <div><span class="text-gray-400">Harga Master:</span> <span class="font-mono text-gray-700">Rp ${Number(d.harga_bandwith).toLocaleString('id-ID')}</span></div>
+                                    <div><span class="text-gray-400">Harga CJP (25%):</span> <strong class="font-mono text-emerald-600">Rp ${Number(d.harga_bandwith * 0.25).toLocaleString('id-ID')}</strong></div>
+                                ` : ''}
                                 <div><span class="text-gray-400">Group Layanan:</span> <span class="text-gray-700">${d.group_layanan || '-'}</span></div>
                                 <div><span class="text-gray-400">Media Akses:</span> <span class="text-gray-700">${d.media_akses || '-'}</span></div>
                             </div>
